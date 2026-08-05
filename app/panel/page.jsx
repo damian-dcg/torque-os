@@ -163,6 +163,7 @@ export default function Panel(){
   function avisoY(msg){ setAviso(msg); setTimeout(()=>setAviso(''),4000); cargar(); }
   async function cambiarEstado(id,estado){ await supabase.from('work_orders').update({estado}).eq('id',id); cargar(); }
 
+  const satsActivos = sats.filter(x=>x.activo);
   const proxOT = ots.length ? Math.max(...ots.map(o=>o.ot_number))+1 : 5001;
   const tabBtn = t => ({ padding:'8px 16px', borderRadius:8, border:`1px solid ${C.borde2}`, background: tab===t?C.naranja:'transparent', color: tab===t?'#14100c':C.gris, fontWeight:700, cursor:'pointer', fontSize:12.5 });
 
