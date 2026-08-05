@@ -9,7 +9,7 @@ const etiqueta = { fontSize:10, letterSpacing:1, color:C.gris, textTransform:'up
 const boton = { padding:'10px 18px', borderRadius:8, border:0, background:C.naranja, color:'#14100c', fontWeight:700, cursor:'pointer', fontSize:13 };
 const th = { textAlign:'left', fontSize:10, letterSpacing:1, textTransform:'uppercase', color:C.gris, padding:'8px 10px', borderBottom:`1px solid ${C.borde}`, fontFamily:'monospace' };
 const td = { padding:'9px 10px', borderBottom:'1px solid rgba(38,50,61,.5)', fontSize:12.5, color:C.tinta };
-const ESTADOS = ['recibida','diagnostico','esperando_repuestos','en_reparacion','pruebas','lista','entregada','cerrada','anulada'];
+const ESTADOS = ['Ingresada','Asignada','En Ruta','Llegada','Trabajando','Esperando Repuesto','Finalizada','Cerrada','Anulada'];
 
 function colorEstado(e){
   if(e==='recibida'||e==='diagnostico') return C.azul;
