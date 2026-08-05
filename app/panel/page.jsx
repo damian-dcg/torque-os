@@ -83,7 +83,7 @@ function FormTarifa({ sats, servicios, tarifas, onOk }){
     <form onSubmit={guardar} style={{background:C.panel,border:`1px solid ${C.borde}`,borderRadius:10,padding:16,marginBottom:16}}>
       <h3 style={{margin:'0 0 12px',fontSize:15,letterSpacing:1}}>TARIFA PACTADA POR SERVICIO</h3>
       <div style={{display:'grid',gridTemplateColumns:'2fr 2fr 1fr',gap:10}}>
-        <div><label style={etiqueta}>SAT *</label><select style={caja} value={f.sat_id} onChange={e=>setF({...f,sat_id:e.target.value})} required><option value="">Elegir…</option>{satsActivos.map(s=><option key={s.id} value={s.id}>{s.nombre}</option>)</select></div>
+        <div><label style={etiqueta}>SAT *</label><select style={caja} value={f.sat_id} onChange={e=>setF({...f,sat_id:e.target.value})} required><option value="">Elegir…</option>{satsActivos.map(s=><option key={s.id} value={s.id}>{s.nombre}</option>)}</select></div>
         <div><label style={etiqueta}>Servicio *</label><select style={caja} value={f.service_type_id} onChange={e=>setF({...f,service_type_id:e.target.value})} required><option value="">Elegir…</option>{servicios.map(s=><option key={s.id} value={s.id}>{s.nombre}</option>)}</select></div>
         <div><label style={etiqueta}>Tarifa $ *</label><input style={caja} type="number" value={f.tarifa} onChange={e=>setF({...f,tarifa:e.target.value})} required /></div>
       </div>
@@ -117,7 +117,7 @@ function FormOT({ customers, sats, regiones, onOk }){
         <div><label style={etiqueta}>Tipo de OT</label><select style={caja} value={f.tipo} onChange={e=>setF({...f,tipo:e.target.value})}><option value="servicio">Servicio / reparación</option><option value="armado_unidad">Armado cliente final</option><option value="armado_volumen">Armado volumen</option><option value="repuesto_garantia">Repuesto en garantía</option><option value="cambio_producto">Cambio de producto</option><option value="despacho">Despacho</option><option value="devolucion_dinero">Devolución de dinero</option><option value="trayecto">Trayecto</option></select></div>
         <div><label style={etiqueta}>Prioridad</label><select style={caja} value={f.prioridad} onChange={e=>setF({...f,prioridad:e.target.value})}><option value="alta">Alta</option><option value="media">Media</option><option value="baja">Baja</option></select></div>
         <div><label style={etiqueta}>Región</label><select style={caja} value={f.region_id} onChange={e=>setF({...f,region_id:e.target.value})}><option value="">—</option>{regiones.map(r=><option key={r.id} value={r.id}>{r.nombre}</option>)}</select></div>
-        <div style={{gridColumn:'1 / -1'}}><label style={etiqueta}>Asignar a</label><select style={caja} value={f.asignado} onChange={e=>setF({...f,asignado:e.target.value})}><option value="">Taller central DCG</option>{satsActivos.map(s=><option key={s.id} value={s.id}>{s.nombre}</option>)</select></div>
+        <div style={{gridColumn:'1 / -1'}}><label style={etiqueta}>Asignar a</label><select style={caja} value={f.asignado} onChange={e=>setF({...f,asignado:e.target.value})}><option value="">Taller central DCG</option>{satsActivos.map(s=><option key={s.id} value={s.id}>{s.nombre}</option>)}</select></div>
         <div style={{gridColumn:'1 / -1'}}><label style={etiqueta}>Descripción / síntoma</label><textarea style={caja} value={f.descripcion} onChange={e=>setF({...f,descripcion:e.target.value})} rows="2" /></div>
       </div>
       {msg && <p style={{color:C.rojo,fontSize:12}}>{msg}</p>}
