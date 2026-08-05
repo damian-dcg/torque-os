@@ -9,6 +9,7 @@ const etiqueta = { fontSize:10, letterSpacing:1, color:C.gris, textTransform:'up
 const boton = { padding:'10px 18px', borderRadius:8, border:0, background:C.naranja, color:'#14100c', fontWeight:700, cursor:'pointer', fontSize:13 };
 const th = { textAlign:'left', fontSize:10, letterSpacing:1, textTransform:'uppercase', color:C.gris, padding:'8px 10px', borderBottom:`1px solid ${C.borde}`, fontFamily:'monospace' };
 const td = { padding:'9px 10px', borderBottom:'1px solid rgba(38,50,61,.5)', fontSize:12.5, color:C.tinta };
+const link = { color:C.gris, fontSize:12, textDecoration:'none', padding:'6px 10px', border:`1px solid ${C.borde2}`, borderRadius:8 };
 const ESTADOS = ['Ingresada','Asignada','En Ruta','Llegada','Trabajando','Esperando Repuesto','Finalizada','Cerrada','Anulada'];
 
 function colorEstado(e){
@@ -83,7 +84,7 @@ function FormTarifa({ sats, servicios, tarifas, onOk }){
     <form onSubmit={guardar} style={{background:C.panel,border:`1px solid ${C.borde}`,borderRadius:10,padding:16,marginBottom:16}}>
       <h3 style={{margin:'0 0 12px',fontSize:15,letterSpacing:1}}>TARIFA PACTADA POR SERVICIO</h3>
       <div style={{display:'grid',gridTemplateColumns:'2fr 2fr 1fr',gap:10}}>
-        <div><label style={etiqueta}>SAT *</label><select style={caja} value={f.sat_id} onChange={e=>setF({...f,sat_id:e.target.value})} required><option value="">Elegir…</option>{satsActivos.map(s=><option key={s.id} value={s.id}>{s.nombre}</option>)}</select></div>
+        <div><label style={etiqueta}>SAT *</label><select style={caja} value={f.sat_id} onChange={e=>setF({...f,sat_id:e.target.value})} required><option value="">Elegir…</option>{sats.map(s=><option key={s.id} value={s.id}>{s.nombre}</option>)}</select></div>
         <div><label style={etiqueta}>Servicio *</label><select style={caja} value={f.service_type_id} onChange={e=>setF({...f,service_type_id:e.target.value})} required><option value="">Elegir…</option>{servicios.map(s=><option key={s.id} value={s.id}>{s.nombre}</option>)}</select></div>
         <div><label style={etiqueta}>Tarifa $ *</label><input style={caja} type="number" value={f.tarifa} onChange={e=>setF({...f,tarifa:e.target.value})} required /></div>
       </div>
@@ -117,7 +118,7 @@ function FormOT({ customers, sats, regiones, onOk }){
         <div><label style={etiqueta}>Tipo de OT</label><select style={caja} value={f.tipo} onChange={e=>setF({...f,tipo:e.target.value})}><option value="servicio">Servicio / reparación</option><option value="armado_unidad">Armado cliente final</option><option value="armado_volumen">Armado volumen</option><option value="repuesto_garantia">Repuesto en garantía</option><option value="cambio_producto">Cambio de producto</option><option value="despacho">Despacho</option><option value="devolucion_dinero">Devolución de dinero</option><option value="trayecto">Trayecto</option></select></div>
         <div><label style={etiqueta}>Prioridad</label><select style={caja} value={f.prioridad} onChange={e=>setF({...f,prioridad:e.target.value})}><option value="alta">Alta</option><option value="media">Media</option><option value="baja">Baja</option></select></div>
         <div><label style={etiqueta}>Región</label><select style={caja} value={f.region_id} onChange={e=>setF({...f,region_id:e.target.value})}><option value="">—</option>{regiones.map(r=><option key={r.id} value={r.id}>{r.nombre}</option>)}</select></div>
-        <div style={{gridColumn:'1 / -1'}}><label style={etiqueta}>Asignar a</label><select style={caja} value={f.asignado} onChange={e=>setF({...f,asignado:e.target.value})}><option value="">Taller central DCG</option>{satsActivos.map(s=><option key={s.id} value={s.id}>{s.nombre}</option>)}</select></div>
+        <div style={{gridColumn:'1 / -1'}}><label style={etiqueta}>Asignar a</label><select style={caja} value={f.asignado} onChange={e=>setF({...f,asignado:e.target.value})}><option value="">Taller central DCG</option>{sats.map(s=><option key={s.id} value={s.id}>{s.nombre}</option>)}</select></div>
         <div style={{gridColumn:'1 / -1'}}><label style={etiqueta}>Descripción / síntoma</label><textarea style={caja} value={f.descripcion} onChange={e=>setF({...f,descripcion:e.target.value})} rows="2" /></div>
       </div>
       {msg && <p style={{color:C.rojo,fontSize:12}}>{msg}</p>}
@@ -161,8 +162,8 @@ export default function Panel(){
 
   async function salir(){ await supabase.auth.signOut(); router.replace('/'); }
   function avisoY(msg){ setAviso(msg); setTimeout(()=>setAviso(''),4000); cargar(); }
-  async function toggleActivo(s){ await supabase.from('companies').update({activo:!s.activo}).eq('id',s.id); cargar(); }
   async function cambiarEstado(id,estado){ await supabase.from('work_orders').update({estado}).eq('id',id); cargar(); }
+  async function toggleActivo(s){ await supabase.from('companies').update({activo:!s.activo}).eq('id',s.id); cargar(); }
 
   const satsActivos = sats.filter(x=>x.activo);
   const proxOT = ots.length ? Math.max(...ots.map(o=>o.ot_number))+1 : 5001;
@@ -170,15 +171,17 @@ export default function Panel(){
 
   return (
     <main style={{minHeight:'100vh',background:C.fondo,color:C.tinta,fontFamily:'system-ui,sans-serif'}}>
-      <header style={{display:'flex',alignItems:'center',gap:14,padding:'14px 22px',borderBottom:`1px solid ${C.borde}`,background:'rgba(13,18,22,.9)',position:'sticky',top:0}}>
+      <header style={{display:'flex',alignItems:'center',gap:14,padding:'14px 22px',borderBottom:`1px solid ${C.borde}`,background:'rgba(13,18,22,.9)',position:'sticky',top:0,flexWrap:'wrap'}}>
         <h1 style={{margin:0,fontSize:22,letterSpacing:1}}>TORQUE<span style={{color:C.naranja}}>·OS</span></h1>
         <span style={{fontSize:11,color:C.gris}}>DCG · Consola de operación</span>
-                <nav style={{marginLeft:'auto',display:'flex',gap:8}}>
-          <a style={{color:C.gris,fontSize:12,textDecoration:'none',padding:'6px 10px',border:`1px solid ${C.borde2}`,borderRadius:8}} href="/catalogo">Catálogo</a>
-          <a style={{color:C.gris,fontSize:12,textDecoration:'none',padding:'6px 10px',border:`1px solid ${C.borde2}`,borderRadius:8}} href="/cupones">Cupones</a>
-          <a style={{color:C.gris,fontSize:12,textDecoration:'none',padding:'6px 10px',border:`1px solid ${C.borde2}`,borderRadius:8}} href="/armado">Armado</a>
+        <nav style={{display:'flex',gap:8,marginLeft:'auto'}}>
+          <a style={link} href="/catalogo">Catálogo</a>
+          <a style={link} href="/cupones">Cupones</a>
+          <a style={link} href="/armado">Armado</a>
+          <a style={link} href="/inventario">Inventario</a>
+          <a style={link} href="/importar">Migrar</a>
         </nav>
-        <span style={{marginLeft:'auto',fontSize:12,color:C.teal}}>{email}</span>
+        <span style={{fontSize:12,color:C.teal}}>{email}</span>
         <button onClick={salir} style={{padding:'7px 12px',borderRadius:8,border:`1px solid ${C.borde2}`,background:'#1a232b',color:C.tinta,cursor:'pointer',fontSize:12}}>Cerrar sesión</button>
       </header>
 
@@ -196,7 +199,7 @@ export default function Panel(){
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
             <div style={{background:C.panel,border:`1px solid ${C.borde}`,borderTop:`3px solid ${C.naranja}`,borderRadius:10,padding:16}}><div style={etiqueta}>OTs activas</div><div style={{fontSize:30,fontFamily:'monospace'}}>{ots.filter(o=>o.estado!=='Cerrada'&&o.estado!=='Anulada').length}</div></div>
             <div style={{background:C.panel,border:`1px solid ${C.borde}`,borderTop:`3px solid ${C.teal}`,borderRadius:10,padding:16}}><div style={etiqueta}>Clientes</div><div style={{fontSize:30,fontFamily:'monospace'}}>{customers.length}</div></div>
-            <div style={{background:C.panel,border:`1px solid ${C.borde}`,borderTop:`3px solid ${C.amarillo}`,borderRadius:10,padding:16}}><div style={etiqueta}>SAT registrados</div><div style={{fontSize:30,fontFamily:'monospace'}}>{sats.length}</div></div>
+            <div style={{background:C.panel,border:`1px solid ${C.borde}`,borderTop:`3px solid ${C.amarillo}`,borderRadius:10,padding:16}}><div style={etiqueta}>SAT activos</div><div style={{fontSize:30,fontFamily:'monospace'}}>{satsActivos.length}</div></div>
             <div style={{background:C.panel,border:`1px solid ${C.borde}`,borderTop:`3px solid ${C.verde}`,borderRadius:10,padding:16}}><div style={etiqueta}>Próxima OT (secuencia única)</div><div style={{fontSize:30,fontFamily:'monospace',color:C.verde}}>OT-{proxOT}</div></div>
           </div>
         )}
@@ -218,7 +221,7 @@ export default function Panel(){
           <div>
             {customers.length===0
               ? <p style={{color:C.amarillo,fontSize:13,background:'rgba(255,197,61,.08)',border:`1px solid ${C.amarillo}`,borderRadius:8,padding:12}}>Primero crea un cliente en la pestaña "Clientes".</p>
-              : <FormOT customers={customers} sats={sats} regiones={regiones} onOk={avisoY} />}
+              : <FormOT customers={customers} sats={satsActivos} regiones={regiones} onOk={avisoY} />}
             <div style={{background:C.panel,border:`1px solid ${C.borde}`,borderRadius:10,overflow:'hidden'}}>
               <table style={{width:'100%',borderCollapse:'collapse'}}>
                 <thead><tr><th style={th}>OT</th><th style={th}>Cliente</th><th style={th}>Tipo</th><th style={th}>Estado (cambiar aquí)</th><th style={th}>Prioridad</th></tr></thead>
@@ -240,11 +243,20 @@ export default function Panel(){
         {tab==='sat' && (
           <div>
             <FormSAT regiones={regiones} onOk={avisoY} />
-            <FormTarifa sats={sats} servicios={servicios} tarifas={tarifas} onOk={avisoY} />
+            <FormTarifa sats={satsActivos} servicios={servicios} tarifas={tarifas} onOk={avisoY} />
             <div style={{background:C.panel,border:`1px solid ${C.borde}`,borderRadius:10,overflow:'hidden'}}>
               <table style={{width:'100%',borderCollapse:'collapse'}}>
-                <thead><tr><th style={th}>SAT</th><th style={th}>RUT</th><th style={th}>Especialidad</th><th style={th}>Modo de cobro</th><th style={th}>Estado</th></tr></thead>
-                <tbody>{sats.map(s=>(<tr key={s.id}><td style={td}>{s.nombre}</td><td style={td}>{s.rut}</td><td style={td}>{s.especialidad}</td><td style={td}>{s.billing_mode}</td><td style={td}><button onClick={()=>toggleActivo(s)} style={{padding:'5px 12px',borderRadius:6,border:'1px solid '+(s.activo?C.verde:C.rojo),background:'transparent',color:s.activo?C.verde:C.rojo,cursor:'pointer',fontSize:11,fontWeight:700}}>{s.activo?'ACTIVO':'INACTIVO'}</button></td></tr>))}</tbody>
+                <thead><tr><th style={th}>SAT</th><th style={th}>RUT</th><th style={th}>Especialidad</th><th style={th}>Modo de cobro</th><th style={th}>Activo</th></tr></thead>
+                <tbody>{sats.map(s=>(
+                  <tr key={s.id}>
+                    <td style={td}>{s.nombre}</td>
+                    <td style={td}>{s.rut}</td>
+                    <td style={td}>{s.especialidad}</td>
+                    <td style={td}>{s.billing_mode}</td>
+                    <td style={td}><button onClick={()=>toggleActivo(s)} style={{padding:'5px 12px',borderRadius:6,border:'1px solid '+(s.activo?C.verde:C.rojo),background:'transparent',color:s.activo?C.verde:C.rojo,cursor:'pointer',fontSize:11,fontWeight:700}}>{s.activo?'ACTIVO':'INACTIVO'}</button></td>
+                  </tr>
+                ))}</tbody>
+              </table>
               {sats.length===0 && <p style={{padding:14,color:C.gris,fontSize:12.5}}>Aún no hay SATs registrados.</p>}
             </div>
           </div>
