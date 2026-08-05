@@ -243,8 +243,7 @@ export default function Panel(){
             <div style={{background:C.panel,border:`1px solid ${C.borde}`,borderRadius:10,overflow:'hidden'}}>
               <table style={{width:'100%',borderCollapse:'collapse'}}>
                 <thead><tr><th style={th}>SAT</th><th style={th}>RUT</th><th style={th}>Especialidad</th><th style={th}>Modo de cobro</th><th style={th}>Estado</th></tr></thead>
-                <tbody>{sats.map(s=>(<tr key={s.id}><td style={td}>{s.nombre}</td><td style={td}>{s.rut}</td><td style={td}>{s.especialidad}</td><td style={td}>{s.billing_mode}</td><td style={{...td,color:C.verde}}>{s.estado}</td></tr>))}</tbody>
-              </table>
+                <tbody>{sats.map(s=>(<tr key={s.id}><td style={td}>{s.nombre}</td><td style={td}>{s.rut}</td><td style={td}>{s.especialidad}</td><td style={td}>{s.billing_mode}</td><td style={td}><button onClick={()=>toggleActivo(s)} style={{padding:'5px 12px',borderRadius:6,border:'1px solid '+(s.activo?C.verde:C.rojo),background:'transparent',color:s.activo?C.verde:C.rojo,cursor:'pointer',fontSize:11,fontWeight:700}}>{s.activo?'ACTIVO':'INACTIVO'}</button></td></tr>))}</tbody>
               {sats.length===0 && <p style={{padding:14,color:C.gris,fontSize:12.5}}>Aún no hay SATs registrados.</p>}
             </div>
           </div>
