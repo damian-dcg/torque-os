@@ -161,6 +161,7 @@ export default function Panel(){
 
   async function salir(){ await supabase.auth.signOut(); router.replace('/'); }
   function avisoY(msg){ setAviso(msg); setTimeout(()=>setAviso(''),4000); cargar(); }
+  async function toggleActivo(s){ await supabase.from('companies').update({activo:!s.activo}).eq('id',s.id); cargar(); }
   async function cambiarEstado(id,estado){ await supabase.from('work_orders').update({estado}).eq('id',id); cargar(); }
 
   const satsActivos = sats.filter(x=>x.activo);
