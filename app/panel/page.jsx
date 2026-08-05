@@ -192,7 +192,7 @@ export default function Panel(){
       <section style={{padding:'16px 22px'}}>
         {tab==='panel' && (
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
-            <div style={{background:C.panel,border:`1px solid ${C.borde}`,borderTop:`3px solid ${C.naranja}`,borderRadius:10,padding:16}}><div style={etiqueta}>OTs activas</div><div style={{fontSize:30,fontFamily:'monospace'}}>{ots.filter(o=>o.estado!=='cerrada'&&o.estado!=='anulada').length}</div></div>
+            <div style={{background:C.panel,border:`1px solid ${C.borde}`,borderTop:`3px solid ${C.naranja}`,borderRadius:10,padding:16}}><div style={etiqueta}>OTs activas</div><div style={{fontSize:30,fontFamily:'monospace'}}>{ots.filter(o=>o.estado!=='Cerrada'&&o.estado!=='Anulada').length}</div></div>
             <div style={{background:C.panel,border:`1px solid ${C.borde}`,borderTop:`3px solid ${C.teal}`,borderRadius:10,padding:16}}><div style={etiqueta}>Clientes</div><div style={{fontSize:30,fontFamily:'monospace'}}>{customers.length}</div></div>
             <div style={{background:C.panel,border:`1px solid ${C.borde}`,borderTop:`3px solid ${C.amarillo}`,borderRadius:10,padding:16}}><div style={etiqueta}>SAT registrados</div><div style={{fontSize:30,fontFamily:'monospace'}}>{sats.length}</div></div>
             <div style={{background:C.panel,border:`1px solid ${C.borde}`,borderTop:`3px solid ${C.verde}`,borderRadius:10,padding:16}}><div style={etiqueta}>Próxima OT (secuencia única)</div><div style={{fontSize:30,fontFamily:'monospace',color:C.verde}}>OT-{proxOT}</div></div>
