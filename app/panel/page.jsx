@@ -169,6 +169,11 @@ export default function Panel(){
       <header style={{display:'flex',alignItems:'center',gap:14,padding:'14px 22px',borderBottom:`1px solid ${C.borde}`,background:'rgba(13,18,22,.9)',position:'sticky',top:0}}>
         <h1 style={{margin:0,fontSize:22,letterSpacing:1}}>TORQUE<span style={{color:C.naranja}}>·OS</span></h1>
         <span style={{fontSize:11,color:C.gris}}>DCG · Consola de operación</span>
+                <nav style={{marginLeft:'auto',display:'flex',gap:8}}>
+          <a style={{color:C.gris,fontSize:12,textDecoration:'none',padding:'6px 10px',border:`1px solid ${C.borde2}`,borderRadius:8}} href="/catalogo">Catálogo</a>
+          <a style={{color:C.gris,fontSize:12,textDecoration:'none',padding:'6px 10px',border:`1px solid ${C.borde2}`,borderRadius:8}} href="/cupones">Cupones</a>
+          <a style={{color:C.gris,fontSize:12,textDecoration:'none',padding:'6px 10px',border:`1px solid ${C.borde2}`,borderRadius:8}} href="/armado">Armado</a>
+        </nav>
         <span style={{marginLeft:'auto',fontSize:12,color:C.teal}}>{email}</span>
         <button onClick={salir} style={{padding:'7px 12px',borderRadius:8,border:`1px solid ${C.borde2}`,background:'#1a232b',color:C.tinta,cursor:'pointer',fontSize:12}}>Cerrar sesión</button>
       </header>
