@@ -61,8 +61,8 @@ export default function Inventario(){
   }
 
   function plantilla(){
-    const cols=['codigo','nombre','unidad','primera_ubicacion','en_stock','comprometido','solicitado','disponible','precio_de_articulo','total'];
-    const ej=['A30012','HORQUILLA DL A3 (SSTT)','UN','STEC-Z01-R1','2','','','2','4721','9442'];
+    const cols=['Número de artículo','Descripción del artículo','Unidad de medida de inventario','Prime
+   const ej=['2017G0137','BUJE POSTE ASIENTO PZA064 M-950 (ST)','UN','STEC-Z01-R1','2','','','2','','','6','12'];
     const blob=new Blob(['\uFEFF'+[cols.join(';'),ej.join(';')].join('\r\n')],{type:'text/csv'});
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='plantilla_stock.csv'; a.click();
   }
