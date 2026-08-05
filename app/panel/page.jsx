@@ -12,10 +12,12 @@ const td = { padding:'9px 10px', borderBottom:'1px solid rgba(38,50,61,.5)', fon
 const ESTADOS = ['Ingresada','Asignada','En Ruta','Llegada','Trabajando','Esperando Repuesto','Finalizada','Cerrada','Anulada'];
 
 function colorEstado(e){
-  if(e==='recibida'||e==='diagnostico') return C.azul;
-  if(e==='esperando_repuestos') return C.amarillo;
-  if(e==='en_reparacion'||e==='pruebas') return C.naranja;
-  if(e==='lista'||e==='entregada'||e==='cerrada') return C.verde;
+  if(e==='Ingresada'||e==='Asignada') return C.azul;
+  if(e==='En Ruta') return C.naranja;
+  if(e==='Llegada') return C.teal;
+  if(e==='Trabajando') return C.amarillo;
+  if(e==='Esperando Repuesto') return C.rojo;
+  if(e==='Finalizada'||e==='Cerrada') return C.verde;
   return C.gris;
 }
 
