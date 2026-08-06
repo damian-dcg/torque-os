@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 
 const C={fondo:'#0d1216',panel:'#141b21',borde:'#26323d',borde2:'#31404d',tinta:'#e9eef2',gris:'#8b9aa6',naranja:'#ff6b2c',verde:'#57d977',rojo:'#ff5d5d'};
-const caja={padding:'8px 10px',borderRadius:8,border:`1px solid ${C.borde2}`,background:'#1a232b',color:C.tinta,fontSize:12.5,cursor:'pointer'};
+const caja={padding:'9px 12px',borderRadius:8,border:`1px solid ${C.borde2}`,background:'#1a232b',color:C.tinta,fontSize:12.5,cursor:'pointer'};
 const th={textAlign:'left',fontSize:10,letterSpacing:1,textTransform:'uppercase',color:C.gris,padding:'8px 10px',borderBottom:`1px solid ${C.borde}`,fontFamily:'monospace'};
 const td={padding:'7px 10px',borderBottom:'1px solid rgba(38,50,61,.5)',fontSize:12,color:C.tinta};
 const inp={width:80,padding:'6px 8px',borderRadius:6,border:`1px solid ${C.borde2}`,background:'#0d1216',color:C.tinta,fontSize:12,fontFamily:'monospace'};
@@ -31,9 +31,8 @@ export default function Inventario(){
     const text=await file.text();
     const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(l=>l.trim());
     const l0=lines[0];
-    const sep=[ '\t',';',','].reduce((a,b)=>(l0.split(a).length>=l0.split(b).length?a:b));
+    const sep=['\t',';',','].reduce((a,b)=>(l0.split(a).length>=l0.split(b).length?a:b));
     const head=splitLine(l0,sep).map(norm);
-    const iCod=0, iNom=1;
     const idx=n=>head.findIndex(h=>h.includes(n));
     const iUn=idx('unidad'), iUb=idx('primera ubic'), iSt=idx('en stock'), iCo=idx('comprometi'), iSo=idx('solicitado'), iDi=idx('disponible'), iPr=idx('precio de art'), iTo=idx('total');
     const {data:ex}=await supabase.from('parts').select('id,codigo');
@@ -41,9 +40,9 @@ export default function Inventario(){
     let ups=0,ins=0;
     for(let i=1;i<lines.length;i++){
       const c=splitLine(lines[i],sep);
-      const codigo=(c[iCod]||'').trim(); if(!codigo) continue;
+      const codigo=(c[0]||'').trim(); if(!codigo) continue;
       const fila={
-        nombre:(c[iNom]||'').trim()||codigo,
+        nombre:(c[1]||'').trim()||codigo,
         unidad:iUn>=0?(c[iUn]||'').trim():null,
         ubicacion:iUb>=0?(c[iUb]||'').trim():null,
         en_stock:iSt>=0?Number(c[iSt])||0:0,
@@ -61,10 +60,26 @@ export default function Inventario(){
   }
 
   function plantilla(){
-    const cols=['Número de artículo','Descripción del artículo','Unidad de medida de inventario','Prime
-   const ej=['2017G0137','BUJE POSTE ASIENTO PZA064 M-950 (ST)','UN','STEC-Z01-R1','2','','','2','','','6','12'];
+    const cols=[
+      'Número de artículo',
+      'Descripción del artículo',
+      'Unidad de medida de inventario',
+      'Primera ubicación',
+      'En stock',
+      'Comprometido',
+      'Solicitado',
+      'Disponible',
+      'Ubicación por defecto',
+      'Ubicación por defecto ejecutada',
+      'Precio de artículo',
+      'Total'
+    ];
+    const ej=['2017G0137','BUJE POSTE ASIENTO PZA064 M-950 (ST)','UN','STEC-Z01-R1','2','','','2','','','6','12'];
     const blob=new Blob(['\uFEFF'+[cols.join(';'),ej.join(';')].join('\r\n')],{type:'text/csv'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='plantilla_stock.csv'; a.click();
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='plantilla_stock.csv';
+    a.click();
   }
 
   return (
