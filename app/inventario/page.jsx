@@ -49,15 +49,13 @@ export default function Inventario(){
       const iUe=head.findIndex(h=>h.includes('ubicacion por defecto')&&h.includes('ejecutada'));
       const iUd=head.findIndex(h=>h.includes('ubicacion por defecto')&&!h.includes('ejecutada'));
       const iPr=col('precio de articulo'); const iTo=col('total'); const iCf=col('confirmado');
-      const {data:ex}=await supabase.from('parts').select('id,codigo');
-      const porCod={}; (ex||[]).forEach(p=>porCod[p.codigo]=p.id);
-      const num=(v)=>Number(String(v==null?'':v).replace(/[^\d-]/g,''))||0;
+            const num=(v)=>Number(String(v==null?'':v).replace(/[^\d-]/g,''))||0;
       const conf=(v)=>['si','sí','x','true','1','confirmado'].includes(norm(v));
-      let ups=0,ins=0,errN=0,firstErr='';
+      const filas=[];
       for(let i=1;i<lines.length;i++){
         const c=splitLine(lines[i],sep);
         const codigo=(c[iCod>=0?iCod:0]||'').trim(); if(!codigo) continue;
-        const fila={
+        filas.push({codigo,
           nombre:(c[iNom>=0?iNom:1]||'').trim()||codigo,
           unidad:iUn>=0?(c[iUn]||'').trim():null,
           ubicacion:iUb>=0?(c[iUb]||'').trim():null,
@@ -69,17 +67,14 @@ export default function Inventario(){
           ubicacion_ejecutada:iUe>=0?(c[iUe]||'').trim():null,
           precio:iPr>=0?num(c[iPr]):0,
           total:iTo>=0?num(c[iTo]):0,
-          confirmado:iCf>=0?conf(c[iCf]):false
-        };
-        if(porCod[codigo]){
-          const {error}=await supabase.from('parts').update(fila).eq('id',porCod[codigo]);
-          if(error){errN++; if(!firstErr)firstErr=error.message;} else ups++;
-        } else {
-          const {error}=await supabase.from('parts').insert([{codigo,...fila}]);
-          if(error){errN++; if(!firstErr)firstErr=error.message;} else ins++;
-        }
+          confirmado:iCf>=0?conf(c[iCf]):false});
       }
-      setMsg('✅ Stock sincronizado: '+ups+' actualizados · '+ins+' creados'+(errN?' · ⛔ '+errN+' errores → '+firstErr:''));
+      let ups=0,errN=0,firstErr='';
+      for(let k=0;k<filas.length;k+=400){
+        const {error}=await supabase.from('parts').upsert(filas.slice(k,k+400),{onConflict:'codigo'});
+        if(error){errN+=1; if(!firstErr)firstErr=error.message;} else ups+=Math.min(400,filas.length-k);
+      }
+      setMsg('✅ Stock sincronizado: '+ups+' filas en '+(Math.ceil(filas.length/400))+' llamada(s)'+(errN?' · ⛔ error: '+firstErr:''));
       cargar();
     }catch(ex){ setMsg('⛔ Error al leer el archivo: '+ex.message); }
     setProc(false);
