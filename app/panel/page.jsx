@@ -14,7 +14,8 @@ const ESTADOS = ['Ingresada','Asignada','Aceptada','Rechazada','En Ruta','Llegad
 
 function colorEstado(e){
   if(e==='Ingresada'||e==='Asignada') return C.azul;
-  if(e==='En Ruta') return C.naranja;
+  if(e==='Aceptada') return C.teal;
+  if(e==='Rechazada') return C.rojo;
   if(e==='Llegada') return C.teal;
   if(e==='Trabajando') return C.amarillo;
   if(e==='Esperando Repuesto') return C.rojo;
