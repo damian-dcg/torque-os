@@ -1,5 +1,15 @@
 import { authUser, json, dataClient } from '@/lib/api';
 
+const defaultByType=(t)=>{
+  const x=(t||'').toLowerCase();
+  if(x.includes('volumen')) return 'CK-ARM-VOL-BICI';
+  if(x.includes('armado')) return 'CK-ARM-BICI';
+  if(x.includes('garantia')) return 'CK-EVAL-GARANTIA';
+  if(x.includes('retiro')) return 'CK-RETIRO';
+  if(x.includes('manten')) return 'CK-MANT-ELEC';
+  return 'CK-REP-CONV';
+};
+
 export async function GET(req){
   const auth = await authUser(req);
   if(!auth) return json({ error:'No autorizado' }, 401);
@@ -29,7 +39,7 @@ export async function GET(req){
   };
   const cust={}; (customers.data||[]).forEach(c=>cust[c.id]=c);
   const workOrders=(ots.data||[]).map(o=>{
-    const schema=schemaFor(o.checklist_code);
+    const schema=schemaFor(o.checklist_code||defaultByType(o.tipo));
     const fotos=(o.evidence_urls||[]).filter(u=>typeof u==='string');
     return {
       id:String(o.id), tenant_id:tenant, type:o.tipo, priority:o.prioridad,
