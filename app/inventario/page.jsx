@@ -36,6 +36,7 @@ export default function Inventario(){
   const [proc,setProc]=useState(false);
   const [q,setQ]=useState('');
   const [fil,setFil]=useState('todos');
+  const [limit,setLimit]=useState(200);
   const router=useRouter();
   useEffect(()=>{ supabase.auth.getSession().then(({data})=>{ if(!data.session) router.replace('/'); else cargar(); }); },[]);
 
@@ -53,17 +54,25 @@ export default function Inventario(){
   async function editar(p,campo,valor){ await supabase.from('parts').update({[campo]:valor}).eq('id',p.id); cargar(); }
   async function eliminar(p){ if(!window.confirm('Eliminar '+p.codigo+' · '+p.nombre+'?')) return; await supabase.from('parts').delete().eq('id',p.id); cargar(); }
 
+  async function vaciar(){
+    if(!window.confirm('Se eliminará TODO el inventario del sistema. ¿Continuar?')) return;
+    if(!window.confirm('Confirmación final: ¿vaciar inventario completo?')) return;
+    await supabase.from('parts').delete().neq('id',-1);
+    setParts([]); setMsg('🗑 Inventario vaciado.');
+  }
+
   const visibles=parts.filter(p=>{
     const t=norm(q);
     const okQ=!t||norm(p.codigo||'').includes(t)||norm(p.nombre||'').includes(t);
     const okF=fil==='todos'?true:fil==='stock'?(Number(p.disponible)>0||Number(p.en_stock)>0):fil==='sinstock'?(Number(p.disponible)<=0&&Number(p.en_stock)<=0):fil==='conf'?!!p.confirmado:!p.confirmado;
     return okQ&&okF;
   });
+  const mostrados=visibles.slice(0,limit);
 
   async function subir(e){
     const file=e.target.files[0]; if(!file) return;
     if(/\.(xlsx|xls)$/i.test(file.name)){ setMsg('⛔ "'+file.name+'" es Excel. Guárdalo como CSV UTF-8 y sube el .csv'); return; }
-    setProc(true); setMsg('⏳ Procesando '+file.name+'…');
+    setProc(true); setMsg('⏳ Leyendo '+file.name+'…');
     try{
       const text=await leerArchivo(file);
       const lines=text.replace(/^\uFEFF/,'').replace(/^ï»¿/,'').split(/\r?\n/).filter(l=>l.trim());
@@ -99,13 +108,16 @@ export default function Inventario(){
           total:iTo>=0?num(c[iTo]):0,
           confirmado:iCf>=0?conf(c[iCf]):false});
       }
-      let ups=0,errN=0,firstErr='';
+      setMsg('⏳ Limpiando base anterior…');
+      await supabase.from('parts').delete().neq('id',-1);
+      let ins=0,errN=0,firstErr='';
       for(let k=0;k<filas.length;k+=400){
-        const {error}=await supabase.from('parts').upsert(filas.slice(k,k+400),{onConflict:'codigo'});
-        if(error){errN+=1; if(!firstErr)firstErr=error.message;} else ups+=Math.min(400,filas.length-k);
+        const lote=filas.slice(k,k+400);
+        const {error}=await supabase.from('parts').upsert(lote,{onConflict:'codigo'});
+        if(error){errN++; if(!firstErr)firstErr=error.message;} else ins+=lote.length;
+        setMsg('⏳ Reemplazando inventario… '+Math.min(k+400,filas.length)+'/'+filas.length);
       }
-      const m=filas.slice(0,3).map(f=>f.codigo+'→stock '+f.en_stock+'/disp '+f.disponible+'/precio '+f.precio).join(' · ');
-      setMsg('✅ '+ups+' filas sincronizadas'+(errN?' · ⛔ '+errN+' lotes con error: '+firstErr:'')+' | Muestra: '+m);
+      setMsg('✅ Espejo exacto del archivo: '+ins+' filas cargadas (base anterior eliminada)'+(errN?' · ⛔ '+errN+' lotes con error: '+firstErr:''));
       await cargar();
     }catch(ex){ setMsg('⛔ Error al leer el archivo: '+ex.message); }
     setProc(false);
@@ -121,33 +133,34 @@ export default function Inventario(){
     <main style={{minHeight:'100vh',background:C.fondo,color:C.tinta,fontFamily:'system-ui,sans-serif'}}>
       <header style={{display:'flex',alignItems:'center',gap:14,padding:'14px 22px',borderBottom:`1px solid ${C.borde}`}}>
         <h1 style={{margin:0,fontSize:22,letterSpacing:1}}>TORQUE<span style={{color:C.naranja}}>·OS</span></h1>
-        <span style={{fontSize:11,color:C.gris}}>Inventario · columnas A–M · todo editable</span>
+        <span style={{fontSize:11,color:C.gris}}>Inventario · espejo exacto de tu Excel · columnas A–M</span>
         <nav style={{marginLeft:'auto',display:'flex',gap:8}}><a style={link} href="/panel">Consola</a></nav>
       </header>
       <section style={{padding:'16px 22px'}}>
         <div style={{display:'flex',gap:10,alignItems:'center',marginBottom:12,flexWrap:'wrap'}}>
-          <button style={caja} onClick={plantilla}>⤓ Bajar plantilla (A–M)</button>
-          <label style={{...caja,cursor:proc?'wait':'pointer',opacity:proc?0.6:1}}>⤒ Subir stock desde Excel (CSV)
+          <label style={{...caja,cursor:proc?'wait':'pointer',opacity:proc?0.6:1,background:C.naranja,color:'#14100c',fontWeight:700}}>⤒ Subir mi Excel (reemplaza todo)
             <input type="file" accept=".csv,.txt" style={{display:'none'}} disabled={proc} onChange={subir} />
           </label>
-          {proc && <span style={{color:C.amarillo,fontSize:12.5}}>⏳ Procesando…</span>}
+          <button style={caja} onClick={plantilla}>⤓ Bajar plantilla (A–M)</button>
+          <button style={{...caja,border:`1px solid ${C.rojo}`,color:C.rojo}} onClick={vaciar}>🗑 Seleccionar todo y eliminar</button>
+          {proc && <span style={{color:C.amarillo,fontSize:12.5}}>⏳ Trabajando…</span>}
         </div>
         {msg && <div style={{marginBottom:12,padding:'10px 14px',borderRadius:8,background:msg.indexOf('⛔')>=0?'rgba(255,93,93,.08)':'rgba(87,217,119,.08)',border:`1px solid ${msg.indexOf('⛔')>=0?C.rojo:C.verde}`,color:msg.indexOf('⛔')>=0?C.rojo:C.verde,fontSize:12.5}}>{msg}</div>}
         <div style={{display:'flex',gap:10,marginBottom:10,flexWrap:'wrap',alignItems:'center'}}>
-          <input style={{...inpT,width:260}} placeholder="🔎 Buscar código o descripción…" value={q} onChange={e=>setQ(e.target.value)} />
-          <select style={{...inpT,width:170}} value={fil} onChange={e=>setFil(e.target.value)}>
+          <input style={{...inpT,width:260}} placeholder="🔎 Buscar código o descripción…" value={q} onChange={e=>{setQ(e.target.value);setLimit(200);}} />
+          <select style={{...inpT,width:170}} value={fil} onChange={e=>{setFil(e.target.value);setLimit(200);}}>
             <option value="todos">Todos</option>
             <option value="stock">Con stock</option>
             <option value="sinstock">Sin stock</option>
             <option value="conf">Confirmados</option>
             <option value="noconf">Sin confirmar</option>
           </select>
-          <span style={{color:C.gris,fontSize:11.5}}>{visibles.length} de {parts.length} artículos</span>
+          <span style={{color:C.gris,fontSize:11.5}}>Mostrando {mostrados.length} de {visibles.length} (total base: {parts.length})</span>
         </div>
         <div style={{background:C.panel,border:`1px solid ${C.borde}`,borderRadius:10,overflow:'auto',maxHeight:'70vh'}}>
           <table style={{width:'100%',borderCollapse:'collapse',minWidth:1600}}>
             <thead><tr>{HEADS.map(h=><th key={h} style={th}>{h}</th>)}<th style={th}>Acción</th></tr></thead>
-            <tbody>{visibles.map(p=>{
+            <tbody>{mostrados.map(p=>{
               const k=p.id+'|'+p.en_stock+'|'+p.comprometido+'|'+p.solicitado+'|'+p.disponible+'|'+p.precio+'|'+p.total+'|'+p.unidad+'|'+p.ubicacion+'|'+p.confirmado;
               return (
               <tr key={k}>
@@ -167,8 +180,9 @@ export default function Inventario(){
                 <td style={td}><button onClick={()=>eliminar(p)} style={{padding:'4px 9px',borderRadius:6,border:`1px solid ${C.rojo}`,background:'transparent',color:C.rojo,cursor:'pointer',fontSize:11}}>🗑</button></td>
               </tr>);})}</tbody>
           </table>
-          {visibles.length===0 && <p style={{padding:14,color:C.gris,fontSize:12.5}}>Sin resultados para el filtro actual.</p>}
+          {visibles.length===0 && <p style={{padding:14,color:C.gris,fontSize:12.5}}>Sin resultados. Sube tu Excel para replicar tu inventario.</p>}
         </div>
+        {visibles.length>limit && <div style={{marginTop:10,textAlign:'center'}}><button style={caja} onClick={()=>setLimit(limit+500)}>Mostrar 500 más (quedan {visibles.length-limit})</button></div>}
       </section>
     </main>
   );
