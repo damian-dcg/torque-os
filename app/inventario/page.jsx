@@ -65,7 +65,7 @@ export default function Inventario(){
     setProc(true); setMsg('⏳ Procesando '+file.name+'…');
     try{
       const text=await leerArchivo(file);
-      const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(l=>l.trim());
+      const lines=text.replace(/^\uFEFF/,'').replace(/^ï»¿/,'').split(/\r?\n/).filter(l=>l.trim());
       let hi=lines.findIndex(l=>norm(l).includes('numero de articulo')||norm(l).includes('descripcion del articulo'));
       if(hi<0) hi=0;
       const l0=lines[hi];
