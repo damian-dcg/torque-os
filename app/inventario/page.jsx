@@ -38,7 +38,16 @@ export default function Inventario(){
   const [fil,setFil]=useState('todos');
   const router=useRouter();
   useEffect(()=>{ supabase.auth.getSession().then(({data})=>{ if(!data.session) router.replace('/'); else cargar(); }); },[]);
-  async function cargar(){ const {data}=await supabase.from('parts').select('*').order('codigo'); setParts(data||[]); }
+  async function cargar(){
+  let all=[]; let from=0; const step=1000;
+  for(;;){
+    const {data}=await supabase.from('parts').select('*').order('codigo').range(from,from+step-1);
+    all=all.concat(data||[]);
+    if(!data||data.length<step) break;
+    from+=step;
+  }
+  setParts(all);
+}
 
   async function editar(p,campo,valor){ await supabase.from('parts').update({[campo]:valor}).eq('id',p.id); cargar(); }
   async function eliminar(p){ if(!window.confirm('Eliminar '+p.codigo+' · '+p.nombre+'?')) return; await supabase.from('parts').delete().eq('id',p.id); cargar(); }
