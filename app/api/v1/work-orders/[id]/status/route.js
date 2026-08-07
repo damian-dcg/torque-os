@@ -1,0 +1,28 @@
+import { authUser, json, dataClient } from '@/lib/api';
+export async function PATCH(req,{ params }){
+  const auth = await authUser(req);
+  if(!auth) return json({ error:'No autorizado' }, 401);
+  const db = dataClient(auth.token);
+  const body = await req.json();
+  const otId = Number(params.id);
+  const newStatus = body.status || body.new_status;
+  const cupones = [];
+  if(body.couponCode) cupones.push(body.couponCode);
+  if(body.validation_codes && body.validation_codes.cupones) cupones.push(...body.validation_codes.cupones);
+  const errores=[];
+  for(const c of cupones){
+    const { error } = await db.rpc('validar_cupon',{ p_code:c, p_ot_id:otId, p_codigo_secundario:null });
+    if(error) errores.push(error.message);
+  }
+  if(errores.length) return json({ error:'Antifraude: '+errores.join(' | ') }, 409);
+  const boxes = body.boxCode ? [body.boxCode] : (body.scannedCodes||[]);
+  if(boxes.length) await db.from('ot_events').insert([{ ot_id:otId, evento:'scan_cajas', detalle:{ codes: boxes } }]);
+  const { data, error } = await db.rpc('cambiar_estado_ot',{ p_ot_id:otId, p_estado:newStatus });
+  if(error) return json({ error:error.message }, 400);
+  const patch={};
+  if(body.financials||body.financialData) patch.financial_data = body.financials||body.financialData;
+  if(body.checklist) patch.checklist_responses = body.checklist;
+  if(body.latitude!=null) patch.geo = { lat:body.latitude, lng:body.longitude };
+  if(Object.keys(patch).length) await db.from('work_orders').update(patch).eq('id',otId);
+  return json({ ok:true, ot:data });
+}
