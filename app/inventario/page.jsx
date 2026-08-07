@@ -21,6 +21,15 @@ async function leerArchivo(file){
   catch(e){ return new TextDecoder('windows-1252').decode(buf); }
 }
 
+function num(v){
+  let s=String(v==null?'':v).replace(/[\u00a0\s]/g,''); if(!s) return 0;
+  if(s.includes(',')){ s=s.replace(/\./g,'').replace(/,/g,'.'); }
+  else { s=s.replace(/\.(\d{3})\b/g,'$1'); }
+  const n=parseFloat(s.replace(/[^\d.-]/g,''));
+  return isNaN(n)?0:n;
+}
+const intNum=v=>Math.round(num(v));
+
 export default function Inventario(){
   const [parts,setParts]=useState([]);
   const [msg,setMsg]=useState('');
@@ -37,7 +46,7 @@ export default function Inventario(){
   const visibles=parts.filter(p=>{
     const t=norm(q);
     const okQ=!t||norm(p.codigo||'').includes(t)||norm(p.nombre||'').includes(t);
-    const okF=fil==='todos'?true:fil==='stock'?(p.disponible>0||p.en_stock>0):fil==='sinstock'?(p.disponible<=0&&p.en_stock<=0):fil==='conf'?!!p.confirmado:!p.confirmado;
+    const okF=fil==='todos'?true:fil==='stock'?(Number(p.disponible)>0||Number(p.en_stock)>0):fil==='sinstock'?(Number(p.disponible)<=0&&Number(p.en_stock)<=0):fil==='conf'?!!p.confirmado:!p.confirmado;
     return okQ&&okF;
   });
 
@@ -60,20 +69,20 @@ export default function Inventario(){
       const iUe=head.findIndex(h=>h.includes('ubicacion por defecto')&&h.includes('ejecutada'));
       const iUd=head.findIndex(h=>h.includes('ubicacion por defecto')&&!h.includes('ejecutada'));
       const iPr=col('precio de articulo'); const iTo=col('total'); const iCf=col('confirmado');
-      const num=v=>Number(String(v==null?'':v).replace(/[\u00a0\s]/g,'').replace(/[^\d-]/g,''))||0;
       const conf=v=>['si','sí','x','true','1','confirmado'].includes(norm(v));
       const filas=[];
       for(let i=hi+1;i<lines.length;i++){
         const c=splitLine(lines[i],sep);
-        const codigo=(c[iCod>=0?iCod:0]||'').trim(); if(!codigo) continue;
+        const codigo=(c[iCod>=0?iCod:0]||'').trim();
+        if(!codigo||codigo==='?'||codigo.length<2||norm(codigo).startsWith('total')) continue;
         filas.push({codigo,
-          nombre:(c[iNom>=0?iNom:1]||'').trim()||codigo,
+          nombre:(c[iNom>=0?iNom:1]||'').trim().replace(/^"|"$/g,'')||codigo,
           unidad:iUn>=0?(c[iUn]||'').trim():null,
           ubicacion:iUb>=0?(c[iUb]||'').trim():null,
-          en_stock:iSt>=0?num(c[iSt]):0,
-          comprometido:iCo>=0?num(c[iCo]):0,
-          solicitado:iSo>=0?num(c[iSo]):0,
-          disponible:iDi>=0?num(c[iDi]):0,
+          en_stock:iSt>=0?intNum(c[iSt]):0,
+          comprometido:iCo>=0?intNum(c[iCo]):0,
+          solicitado:iSo>=0?intNum(c[iSo]):0,
+          disponible:iDi>=0?intNum(c[iDi]):0,
           ubicacion_defecto:iUd>=0?(c[iUd]||'').trim():null,
           ubicacion_ejecutada:iUe>=0?(c[iUe]||'').trim():null,
           precio:iPr>=0?num(c[iPr]):0,
@@ -85,14 +94,15 @@ export default function Inventario(){
         const {error}=await supabase.from('parts').upsert(filas.slice(k,k+400),{onConflict:'codigo'});
         if(error){errN+=1; if(!firstErr)firstErr=error.message;} else ups+=Math.min(400,filas.length-k);
       }
-      setMsg('✅ Stock sincronizado: '+ups+' filas'+(errN?' · ⛔ error: '+firstErr:''));
+      const m=filas.slice(0,3).map(f=>f.codigo+'→stock '+f.en_stock+'/disp '+f.disponible+'/precio '+f.precio).join(' · ');
+      setMsg('✅ '+ups+' filas sincronizadas'+(errN?' · ⛔ '+errN+' lotes con error: '+firstErr:'')+' | Muestra: '+m);
       cargar();
     }catch(ex){ setMsg('⛔ Error al leer el archivo: '+ex.message); }
     setProc(false);
   }
 
   function plantilla(){
-    const ej=['2017G0137','BUJE POSTE ASIENTO PZA064 M-950 (ST)','UN','STEC-Z01-R1','2','','','2','RPAC-Z01-R1','','6','12',''];
+    const ej=['2017G0137','BUJE POSTE ASIENTO PZA064 M-950 (ST)','UN','STEC-Z01-R1','2','','','2','','No','6','12',''];
     const blob=new Blob(['\uFEFF'+[HEADS.join(';'),ej.join(';')].join('\r\n')],{type:'text/csv;charset=utf-8'});
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='plantilla_stock.csv'; a.click();
   }
@@ -111,8 +121,8 @@ export default function Inventario(){
             <input type="file" accept=".csv,.txt" style={{display:'none'}} disabled={proc} onChange={subir} />
           </label>
           {proc && <span style={{color:C.amarillo,fontSize:12.5}}>⏳ Procesando…</span>}
-          {msg && <span style={{color:msg.indexOf('⛔')>=0?C.rojo:C.verde,fontSize:12.5}}>{msg}</span>}
         </div>
+        {msg && <div style={{marginBottom:12,padding:'10px 14px',borderRadius:8,background:msg.indexOf('⛔')>=0?'rgba(255,93,93,.08)':'rgba(87,217,119,.08)',border:`1px solid ${msg.indexOf('⛔')>=0?C.rojo:C.verde}`,color:msg.indexOf('⛔')>=0?C.rojo:C.verde,fontSize:12.5}}>{msg}</div>}
         <div style={{display:'flex',gap:10,marginBottom:10,flexWrap:'wrap',alignItems:'center'}}>
           <input style={{...inpT,width:260}} placeholder="🔎 Buscar código o descripción…" value={q} onChange={e=>setQ(e.target.value)} />
           <select style={{...inpT,width:170}} value={fil} onChange={e=>setFil(e.target.value)}>
@@ -133,14 +143,14 @@ export default function Inventario(){
                 <td style={{...td,minWidth:220}}>{p.nombre}</td>
                 <td style={td}><input style={{...inpT,width:50,padding:'5px 7px'}} defaultValue={p.unidad||''} onBlur={e=>editar(p,'unidad',e.target.value)} /></td>
                 <td style={td}><input style={{...inpT,width:100,padding:'5px 7px'}} defaultValue={p.ubicacion||''} onBlur={e=>editar(p,'ubicacion',e.target.value)} /></td>
-                <td style={td}><input style={inp} defaultValue={p.en_stock} onBlur={e=>editar(p,'en_stock',Number(e.target.value)||0)} /></td>
-                <td style={td}><input style={inp} defaultValue={p.comprometido} onBlur={e=>editar(p,'comprometido',Number(e.target.value)||0)} /></td>
-                <td style={td}><input style={inp} defaultValue={p.solicitado} onBlur={e=>editar(p,'solicitado',Number(e.target.value)||0)} /></td>
-                <td style={td}><input style={inp} defaultValue={p.disponible} onBlur={e=>editar(p,'disponible',Number(e.target.value)||0)} /></td>
+                <td style={td}><input style={inp} defaultValue={p.en_stock} onBlur={e=>editar(p,'en_stock',intNum(e.target.value))} /></td>
+                <td style={td}><input style={inp} defaultValue={p.comprometido} onBlur={e=>editar(p,'comprometido',intNum(e.target.value))} /></td>
+                <td style={td}><input style={inp} defaultValue={p.solicitado} onBlur={e=>editar(p,'solicitado',intNum(e.target.value))} /></td>
+                <td style={td}><input style={inp} defaultValue={p.disponible} onBlur={e=>editar(p,'disponible',intNum(e.target.value))} /></td>
                 <td style={td}><input style={{...inpT,width:100,padding:'5px 7px'}} defaultValue={p.ubicacion_defecto||''} onBlur={e=>editar(p,'ubicacion_defecto',e.target.value)} /></td>
                 <td style={td}><input style={{...inpT,width:100,padding:'5px 7px'}} defaultValue={p.ubicacion_ejecutada||''} onBlur={e=>editar(p,'ubicacion_ejecutada',e.target.value)} /></td>
-                <td style={td}><input style={inp} defaultValue={p.precio} onBlur={e=>editar(p,'precio',Number(e.target.value)||0)} /></td>
-                <td style={td}><input style={inp} defaultValue={p.total} onBlur={e=>editar(p,'total',Number(e.target.value)||0)} /></td>
+                <td style={td}><input style={inp} defaultValue={p.precio} onBlur={e=>editar(p,'precio',num(e.target.value))} /></td>
+                <td style={td}><input style={inp} defaultValue={p.total} onBlur={e=>editar(p,'total',num(e.target.value))} /></td>
                 <td style={td}><input type="checkbox" checked={!!p.confirmado} onChange={e=>editar(p,'confirmado',e.target.checked)} /></td>
                 <td style={td}><button onClick={()=>eliminar(p)} style={{padding:'4px 9px',borderRadius:6,border:`1px solid ${C.rojo}`,background:'transparent',color:C.rojo,cursor:'pointer',fontSize:11}}>🗑</button></td>
               </tr>))}</tbody>
