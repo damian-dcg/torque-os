@@ -38,16 +38,17 @@ export default function Inventario(){
   const [fil,setFil]=useState('todos');
   const router=useRouter();
   useEffect(()=>{ supabase.auth.getSession().then(({data})=>{ if(!data.session) router.replace('/'); else cargar(); }); },[]);
+
   async function cargar(){
-  let all=[]; let from=0; const step=1000;
-  for(;;){
-    const {data}=await supabase.from('parts').select('*').order('codigo').range(from,from+step-1);
-    all=all.concat(data||[]);
-    if(!data||data.length<step) break;
-    from+=step;
+    let all=[]; let from=0; const step=1000;
+    for(;;){
+      const {data}=await supabase.from('parts').select('*').order('codigo').range(from,from+step-1);
+      all=all.concat(data||[]);
+      if(!data||data.length<step) break;
+      from+=step;
+    }
+    setParts(all);
   }
-  setParts(all);
-}
 
   async function editar(p,campo,valor){ await supabase.from('parts').update({[campo]:valor}).eq('id',p.id); cargar(); }
   async function eliminar(p){ if(!window.confirm('Eliminar '+p.codigo+' · '+p.nombre+'?')) return; await supabase.from('parts').delete().eq('id',p.id); cargar(); }
@@ -105,7 +106,7 @@ export default function Inventario(){
       }
       const m=filas.slice(0,3).map(f=>f.codigo+'→stock '+f.en_stock+'/disp '+f.disponible+'/precio '+f.precio).join(' · ');
       setMsg('✅ '+ups+' filas sincronizadas'+(errN?' · ⛔ '+errN+' lotes con error: '+firstErr:'')+' | Muestra: '+m);
-      cargar();
+      await cargar();
     }catch(ex){ setMsg('⛔ Error al leer el archivo: '+ex.message); }
     setProc(false);
   }
@@ -146,8 +147,10 @@ export default function Inventario(){
         <div style={{background:C.panel,border:`1px solid ${C.borde}`,borderRadius:10,overflow:'auto',maxHeight:'70vh'}}>
           <table style={{width:'100%',borderCollapse:'collapse',minWidth:1600}}>
             <thead><tr>{HEADS.map(h=><th key={h} style={th}>{h}</th>)}<th style={th}>Acción</th></tr></thead>
-            <tbody>{visibles.map(p=>(
-              <tr key={p.id+'|'+p.en_stock+'|'+p.comprometido+'|'+p.solicitado+'|'+p.disponible+'|'+p.precio+'|'+p.total+'|'+p.unidad+'|'+p.ubicacion+'|'+p.confirmado}>
+            <tbody>{visibles.map(p=>{
+              const k=p.id+'|'+p.en_stock+'|'+p.comprometido+'|'+p.solicitado+'|'+p.disponible+'|'+p.precio+'|'+p.total+'|'+p.unidad+'|'+p.ubicacion+'|'+p.confirmado;
+              return (
+              <tr key={k}>
                 <td style={{...td,fontFamily:'monospace',whiteSpace:'nowrap'}}>{p.codigo}</td>
                 <td style={{...td,minWidth:220}}>{p.nombre}</td>
                 <td style={td}><input style={{...inpT,width:50,padding:'5px 7px'}} defaultValue={p.unidad||''} onBlur={e=>editar(p,'unidad',e.target.value)} /></td>
@@ -162,7 +165,7 @@ export default function Inventario(){
                 <td style={td}><input style={inp} defaultValue={p.total} onBlur={e=>editar(p,'total',num(e.target.value))} /></td>
                 <td style={td}><input type="checkbox" checked={!!p.confirmado} onChange={e=>editar(p,'confirmado',e.target.checked)} /></td>
                 <td style={td}><button onClick={()=>eliminar(p)} style={{padding:'4px 9px',borderRadius:6,border:`1px solid ${C.rojo}`,background:'transparent',color:C.rojo,cursor:'pointer',fontSize:11}}>🗑</button></td>
-              </tr>))}</tbody>
+              </tr>);})}</tbody>
           </table>
           {visibles.length===0 && <p style={{padding:14,color:C.gris,fontSize:12.5}}>Sin resultados para el filtro actual.</p>}
         </div>
