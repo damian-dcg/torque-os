@@ -138,7 +138,7 @@ export default function Inventario(){
           <table style={{width:'100%',borderCollapse:'collapse',minWidth:1600}}>
             <thead><tr>{HEADS.map(h=><th key={h} style={th}>{h}</th>)}<th style={th}>Acción</th></tr></thead>
             <tbody>{visibles.map(p=>(
-              <tr key={p.id}>
+              <tr key={p.id+'|'+p.en_stock+'|'+p.comprometido+'|'+p.solicitado+'|'+p.disponible+'|'+p.precio+'|'+p.total+'|'+p.unidad+'|'+p.ubicacion+'|'+p.confirmado}>
                 <td style={{...td,fontFamily:'monospace',whiteSpace:'nowrap'}}>{p.codigo}</td>
                 <td style={{...td,minWidth:220}}>{p.nombre}</td>
                 <td style={td}><input style={{...inpT,width:50,padding:'5px 7px'}} defaultValue={p.unidad||''} onBlur={e=>editar(p,'unidad',e.target.value)} /></td>
