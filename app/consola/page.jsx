@@ -168,6 +168,7 @@ export default function Consola(){
 
         {tab==='checklists'&&<ModChecklists avisar={avisar}/>}
         {tab==='red'&&<ModRed avisar={avisar}/>}
+        {tab==='reportes'&&<ModReportes/>}
         {tab==='config'&&<ModConfig tenant={tenant} avisar={avisar} onTenant={setTenant}/>}
       </div>
 
