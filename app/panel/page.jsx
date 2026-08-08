@@ -18,6 +18,7 @@ function colorEstado(e){
   if(e==='Llegada') return C.teal;
   if(e==='Trabajando') return C.amarillo;
   if(e==='Esperando Repuesto') return C.rojo;
+  if(e==='Revisión QA') return C.teal;
   if(e==='Finalizada'||e==='Cerrada') return C.verde;
   return C.gris;
 }
