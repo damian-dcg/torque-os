@@ -17,7 +17,7 @@ export default function Login(){
     const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
     setBusy(false);
     if(error) setErr('Correo o contraseña incorrectos');
-    else router.push('/panel');
+    else router.push('/consola');
   }
 
   const brand = (tenant&&tenant.color_primario)||T.brand;
