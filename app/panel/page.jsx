@@ -10,8 +10,7 @@ const boton = { padding:'10px 18px', borderRadius:8, border:0, background:C.nara
 const th = { textAlign:'left', fontSize:10, letterSpacing:1, textTransform:'uppercase', color:C.gris, padding:'8px 10px', borderBottom:`1px solid ${C.borde}`, fontFamily:'monospace' };
 const td = { padding:'9px 10px', borderBottom:'1px solid rgba(38,50,61,.5)', fontSize:12.5, color:C.tinta };
 const link = { color:C.gris, fontSize:12, textDecoration:'none', padding:'6px 10px', border:`1px solid ${C.borde2}`, borderRadius:8 };
-const ESTADOS = ['Ingresada','Asignada','Aceptada','Rechazada','En Ruta','Llegada','Trabajando','Esperando Repuesto','Finalizada','Cerrada','Anulada'];
-
+const ESTADOS = ['Ingresada','Asignada','Aceptada','Rechazada','En Ruta','Llegada','Trabajando','Esperando Repuesto','Finalizada','Revisión QA','Cerrada','Anulada'];
 function colorEstado(e){
   if(e==='Ingresada'||e==='Asignada') return C.azul;
   if(e==='Aceptada') return C.teal;
