@@ -38,30 +38,33 @@ export default function Tecnico(){
   const [costos,setCostos]=useState([]); const [nuevoCosto,setNuevoCosto]=useState({concepto:'',monto:''});
   const [gar,setGar]=useState({aplica:'',causa:''}); const [cobro,setCobro]=useState({tipo:'',medio:''});
   const [modal,setModal]=useState(null); const [motivo,setMotivo]=useState(''); const [repuesto,setRepuesto]=useState('');
-  const [selRech,setSelRech]=useState([]);
+  const [rechazoOt,setRechazoOt]=useState(null);
   const [nps,setNps]=useState(null); const [toast,setToast]=useState(null);
+  const meRef=useRef(null);
 
   function avisar(txt,color){ setToast({txt,color}); setTimeout(()=>setToast(null),2600); }
   async function token(){ const {data}=await supabase.auth.getSession(); return data.session?data.session.access_token:null; }
   function pos(ms){ return new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:ms,maximumAge:15000})); }
 
+  async function cargarOTs(){
+    const m=meRef.current;
+    let q=supabase.from('work_orders').select('*').order('id',{ascending:false}).limit(200);
+    if(m&&m.rol==='tecnico_sat') q=q.eq('asignado_user_id',m.id); else if(m&&m.rol==='sat_admin') q=q.eq('asignado_company_id',m.company_id);
+    const {data}=await q; setOts(data||[]);
+  }
+
   useEffect(()=>{ supabase.auth.getSession().then(({data})=>{ if(data.session) setUser(data.session.user); }); },[]);
   useEffect(()=>{ if(!user) return;
     (async()=>{
-      const {data:m}=await supabase.from('users').select('*').eq('auth_uid',user.id).single(); setMe(m);
+      const {data:m}=await supabase.from('users').select('*').eq('auth_uid',user.id).single();
+      meRef.current=m; setMe(m);
       const [b,c,cu,r]=await Promise.all([supabase.from('checklist_blocks').select('*'),supabase.from('checklists').select('*'),supabase.from('customers').select('*'),supabase.from('regions').select('*')]);
       const bm={}; (b.data||[]).forEach(x=>bm[x.code]=x); setBlocks(bm); setChecks(c.data||[]);
       const cm={}; (cu.data||[]).forEach(x=>cm[x.id]=x); setCust(cm);
       const rm={}; (r.data||[]).forEach(x=>rm[x.id]=x.nombre); setRegs(rm);
-      let q=supabase.from('work_orders').select('*').order('id',{ascending:false}).limit(200);
-      if(m&&m.rol==='tecnico_sat') q=q.eq('asignado_user_id',m.id); else if(m&&m.rol==='sat_admin') q=q.eq('asignado_company_id',m.company_id);
-      const {data:o}=await q; setOts(o||[]);
+      await cargarOTs();
     })();
-    const ch=supabase.channel('rt-tec').on('postgres_changes',{event:'*',schema:'public',table:'work_orders'},async()=>{
-      let q=supabase.from('work_orders').select('*').order('id',{ascending:false}).limit(200);
-      if(me&&me.rol==='tecnico_sat') q=q.eq('asignado_user_id',me.id); else if(me&&me.rol==='sat_admin') q=q.eq('asignado_company_id',me.company_id);
-      const {data:o}=await q; setOts(prev=>{ const fresh={}; (o||[]).forEach(x=>fresh[x.id]=x); return (prev||[]).map(p=>fresh[p.id]?{...fresh[p.id],estado:fresh[p.id].estado}:p).concat((o||[]).filter(x=>!(prev||[]).some(p=>p.id===x.id))); });
-    }).subscribe();
+    const ch=supabase.channel('rt-tec').on('postgres_changes',{event:'*',schema:'public',table:'work_orders'},()=>{ cargarOTs(); }).subscribe();
     return ()=>supabase.removeChannel(ch);
   },[user]);
 
@@ -70,7 +73,6 @@ export default function Tecnico(){
     if(error) avisar('⛔ Credenciales incorrectas',C.rojo); else setUser(data.user);
   }
   async function salir(){ await supabase.auth.signOut(); setUser(null); setSel(null); }
-
   async function subirFoto(otId,file){ const path=`ot-${otId}/${Date.now()}-${Math.random().toString(36).slice(2)}-${file.name}`;
     const {error}=await supabase.storage.from('evidencia').upload(path,file); if(error){ avisar('⛔ No se pudo subir la foto',C.rojo); return null; }
     return supabase.storage.from('evidencia').getPublicUrl(path).data.publicUrl; }
@@ -79,8 +81,8 @@ export default function Tecnico(){
     setOts(prev=>prev.map(x=>x.id===ot.id?{...x,estado}:x));
     const tk=await token();
     fetch(`/api/v1/work-orders/${ot.id}/status`,{method:'PATCH',headers:{Authorization:`Bearer ${tk}`,'Content-Type':'application/json'},body:JSON.stringify({status:estado,...(extra||{})})})
-      .then(r=>r.json()).then(d=>{ if(d&&d.error){ avisar('⛔ '+d.error,C.rojo); } else avisar('✅ '+estado,C.verde); })
-      .catch(()=>avisar('⚠ Sin conexión: se reintentará al volver',C.amarillo));
+      .then(r=>r.json()).then(d=>{ if(d&&d.error){ avisar('⛔ '+d.error,C.rojo); cargarOTs(); } else avisar('✅ '+estado,C.verde); })
+      .catch(()=>avisar('⚠ Sin conexión: se reintentará',C.amarillo));
     try{ const p=await pos(2500); await supabase.from('ot_events').insert([{ot_id:ot.id,evento:'geo',detalle:{estado,lat:p.coords.latitude,lng:p.coords.longitude}}]); }catch(e){}
   }
 
@@ -95,10 +97,10 @@ export default function Tecnico(){
     parche(ot,'En Ruta');
   }
 
-  async function confirmarLlegada(ot){ const c=cust[ot.customer_id]||{};
+  async function confirmarLlegada(ot){
     if(ot.geo_cliente){ try{ const p=await pos(3000); const d=dist(p.coords.latitude,p.coords.longitude,ot.geo_cliente.lat,ot.geo_cliente.lng);
-      if(d>100) avisar('⚠ Estás a '+Math.round(d)+' m (radio 100 m). Llegada registrada con observación.',C.amarillo);
-    }catch(e){ avisar('⚠ Sin GPS: llegada registrada sin validación de radio.',C.amarillo); } }
+      if(d>100) avisar('⚠ A '+Math.round(d)+' m (radio 100 m). Llegada registrada con observación.',C.amarillo);
+    }catch(e){ avisar('⚠ Sin GPS: llegada sin validación de radio.',C.amarillo); } }
     parche(ot,'Llegada');
   }
 
@@ -110,39 +112,32 @@ export default function Tecnico(){
   const total=15000+costos.reduce((s,x)=>s+(Number(x.monto)||0),0);
   const pendientes=ots.filter(o=>o.estado==='Ingresada');
   const activas=ots.filter(o=>!['Ingresada','Cerrada','Rechazada'].includes(o.estado));
+  const Toast=toast? <div style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',background:C.panel,border:`2px solid ${toast.color}`,color:toast.color,padding:'12px 22px',borderRadius:12,fontWeight:800,zIndex:99,fontSize:14,boxShadow:'0 6px 24px rgba(0,0,0,.5)',pointerEvents:'none',maxWidth:'90%'}}>{toast.txt}</div> : null;
 
   function valItem(g,it,i){ const id=it.id||g.code+'_'+i; return answers[id]; }
   function faltaObligatorios(){ const f=[]; grupos.forEach(g=>(g.items||[]).forEach((it,i)=>{ if(it.r){ const v=valItem(g,it,i); if(it.t==='foto'){ if(!(v&&v.length)) f.push(it.l); } else if(!v||!String(v).trim()) f.push(it.l); } })); return f; }
 
-  async function aceptarRuta(){ const lista=pendientes.filter(o=>!selRech.includes(o.id));
-    for(const o of lista){ parche(o,'Asignada'); }
-    avisar('✅ Ruta aceptada: '+lista.length+' OT(s) asignadas',C.verde);
-  }
-  async function rechazarSel(){ if(!motivo.trim()){ avisar('⛔ El motivo es obligatorio',C.rojo); return; }
-    for(const id of selRech){ const o=ots.find(x=>x.id===id); if(o) parche(o,'Rechazada',{motivo}); }
-    setOts(prev=>prev.filter(x=>!selRech.includes(x.id)));
-    setModal(null); setSelRech([]); setMotivo('');
-    avisar('✅ Rechazadas con motivo → pasan al agente',C.verde);
-  }
+  function aceptarTodas(){ pendientes.forEach(o=>parche(o,'Asignada')); avisar('✅ Ruta aceptada: '+pendientes.length+' OT(s)',C.verde); }
+  function confirmarRechazo(){ if(!motivo.trim()){ avisar('⛔ El motivo es obligatorio',C.rojo); return; }
+    parche(rechazoOt,'Rechazada',{motivo}); setModal(null); setMotivo(''); avisar('✅ Rechazada con motivo → pasa al agente',C.verde); }
 
   async function solicitarRepuesto(){ if(!repuesto.trim()){ avisar('⛔ Describe el repuesto',C.rojo); return; }
     await supabase.from('ot_events').insert([{ot_id:ot.id,evento:'alerta_repuesto',detalle:{repuesto,area:'Bodega'}}]);
     setModal(null); setRepuesto('');
     parche(ot,'Esperando Repuesto',{area_responsable:'Bodega'});
-    avisar('📦 Repuesto solicitado → agente notificado para reagendar',C.amarillo);
   }
 
   async function finalizar(){
     const pend=faltaObligatorios(); if(pend.length){ avisar('⛔ Checklist incompleto: '+pend.slice(0,3).join(' · '),C.rojo); return; }
     if(!firma){ avisar('⛔ Falta la firma del cliente',C.rojo); return; }
     if(esArmado&&!cupon.trim()){ avisar('⛔ Falta el código de cupón',C.rojo); return; }
-    if(esArmado&&manual&&!fotoEtiqueta){ avisar('⛔ Ingreso manual exige foto de la etiqueta dañada',C.rojo); return; }
+    if(esArmado&&manual&&!fotoEtiqueta){ avisar('⛔ Ingreso manual exige foto de la etiqueta',C.rojo); return; }
     const checklist={...answers,w_garantia:gar.aplica,w_causa:gar.causa,w_cobro:cobro.tipo,w_medio:cobro.medio};
     const tk=await token();
     setOts(prev=>prev.map(x=>x.id===ot.id?{...x,estado:'Revisión QA'}:x));
     const r=await fetch(`/api/v1/work-orders/${ot.id}/status`,{method:'PATCH',headers:{Authorization:`Bearer ${tk}`,'Content-Type':'application/json'},body:JSON.stringify({status:'Revisión QA',checklist,couponCode:cupon.trim()||undefined,boxCode:cajas.trim()||undefined,financials:{baseCost:15000,manualItems:costos,totalCost:total,garantia:gar.aplica,cobro:cobro.tipo},firma})});
     const d=await r.json();
-    if(d&&d.error){ avisar('⛔ '+d.error,C.rojo); return; }
+    if(d&&d.error){ avisar('⛔ '+d.error,C.rojo); cargarOTs(); return; }
     avisar('✅ OT finalizada → Revisión QA',C.verde);
     setNps({p:0,a:0,s:0,com:''});
   }
@@ -163,7 +158,7 @@ export default function Tecnico(){
 <table><tr><th>Cliente</th><td>${cliente.nombre||''}</td><th>RUT</th><td>${cliente.rut||''}</td></tr>
 <tr><th>Teléfono</th><td>${cliente.telefono||''}</td><th>Región</th><td>${regs[cliente.region_id]||''}</td></tr>
 <tr><th>Dirección</th><td colspan="3">${ot.direccion||cliente.direccion||''}</td></tr>
-<tr><th>Tipo</th><td>${ot.tipo}</td><th>Garantía</th><td>${gar.aplica||'—'} · Cobro: ${cobro.tipo||'—'}</td></tr></table>
+<tr><th>Tipo</th><td>${ot.tipo}</td><th>Garantía/Cobro</th><td>${gar.aplica||'—'} / ${cobro.tipo||'—'}</td></tr></table>
 <table><tr><th>Checklist</th><th>Respuesta</th></tr>${filas}</table>
 <table><tr><th>Concepto</th><th>Monto</th></tr><tr><td>Costo base visita</td><td>$15.000</td></tr>${costos.map(x=>`<tr><td>${x.concepto}</td><td>$${Number(x.monto).toLocaleString('es-CL')}</td></tr>`).join('')}<tr><td><b>TOTAL</b></td><td><b>$${total.toLocaleString('es-CL')}</b></td></tr></table>
 ${firma?`<p><b>Firma del cliente:</b></p><img src="${firma}" style="width:220px;height:90px;object-fit:contain"/>`:''}
@@ -172,10 +167,9 @@ ${fotos.length?`<p><b>Anexo fotográfico:</b></p>${fotos.map(f=>`<img src="${f}"
     w.document.close();
   }
 
-  if(toast) return <div style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',background:C.panel,border:`2px solid ${toast.color}`,color:toast.color,padding:'12px 22px',borderRadius:12,fontWeight:800,zIndex:99,fontSize:14,boxShadow:'0 6px 24px rgba(0,0,0,.5)',pointerEvents:'none'}}>{toast.txt}</div>;
-
   if(!user) return (
     <main style={{minHeight:'100vh',background:C.fondo,display:'grid',placeItems:'center',fontFamily:'system-ui,sans-serif'}}>
+      {Toast}
       <form onSubmit={entrar} style={{width:320,background:C.panel,border:`1px solid ${C.borde}`,borderRadius:14,padding:26}}>
         <h1 style={{margin:'0 0 4px',fontSize:26,color:C.tinta,letterSpacing:1}}>TORQUE<span style={{color:C.naranja}}>·OS</span></h1>
         <p style={{margin:'0 0 18px',color:C.gris,fontSize:12}}>Acceso técnico de terreno</p>
@@ -188,6 +182,7 @@ ${fotos.length?`<p><b>Anexo fotográfico:</b></p>${fotos.map(f=>`<img src="${f}"
 
   if(!ot) return (
     <main style={{minHeight:'100vh',background:C.fondo,fontFamily:'system-ui,sans-serif',padding:16,maxWidth:560,margin:'0 auto'}}>
+      {Toast}
       <header style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
         <h1 style={{margin:0,fontSize:20,color:C.tinta}}>TORQUE<span style={{color:C.naranja}}>·OS</span></h1>
         <span style={{color:C.gris,fontSize:11}}>Hola {(me&&me.nombre)||''}</span>
@@ -195,27 +190,32 @@ ${fotos.length?`<p><b>Anexo fotográfico:</b></p>${fotos.map(f=>`<img src="${f}"
       </header>
       {pendientes.length>0&&(
         <div style={{background:C.panel,border:`2px solid ${C.azul}`,borderRadius:12,padding:14,marginBottom:12}}>
-          <h4 style={{margin:'0 0 8px',color:C.azul,fontSize:12,letterSpacing:1}}>RUTA DEL DÍA · {pendientes.length} OT(S) POR ACEPTAR</h4>
-          {pendientes.map(o=>(
-            <label key={o.id} style={{display:'flex',gap:8,alignItems:'center',color:C.tinta,fontSize:13,padding:'6px 0',borderBottom:`1px solid ${C.borde}`}}>
-              <input type="checkbox" checked={selRech.includes(o.id)} onChange={e=>setSelRech(e.target.checked?[...selRech,o.id]:selRech.filter(x=>x!==o.id))}/>
-              <span><b style={{color:C.naranja}}>OT-{o.ot_number}</b> · {(cust[o.customer_id]||{}).nombre} · {o.tipo}</span>
-            </label>))}
-          <button onClick={aceptarRuta} style={{...btnG,background:C.teal,marginTop:10}}>✔ Aceptar ruta completa ({pendientes.length-selRech.length})</button>
-          <button onClick={()=>{ if(!selRech.length){ avisar(' Marca las OTs a rechazar',C.rojo); return; } setModal('rechazo'); }} style={{...btnS,borderColor:C.rojo,color:C.rojo}}>✖ Rechazar seleccionadas (exige motivo)</button>
+          <h4 style={{margin:'0 0 10px',color:C.azul,fontSize:12,letterSpacing:1}}>📋 RUTA DEL DÍA · {pendientes.length} OT(S) POR ACEPTAR</h4>
+          <button onClick={aceptarTodas} style={{...btnG,background:C.teal}}>✔ ACEPTAR TODAS ({pendientes.length})</button>
+          {pendientes.map(o=>{ const c=cust[o.customer_id]||{}; return (
+            <div key={o.id} style={{border:`1px solid ${C.borde2}`,borderRadius:10,padding:12,marginBottom:10,background:'#101820'}}>
+              <div style={{display:'flex',justifyContent:'space-between'}}><b style={{color:C.naranja}}>OT-{o.ot_number}</b><span style={{color:C.gris,fontSize:11}}>{o.tipo}</span></div>
+              <div style={{color:C.tinta,fontSize:13,marginTop:2}}>{c.nombre}</div>
+              <div style={{color:C.gris,fontSize:11,marginTop:2}}>{o.direccion||c.direccion||''}</div>
+              <div style={{display:'flex',gap:8,marginTop:8}}>
+                <button onClick={()=>parche(o,'Asignada')} style={{...btnS,flex:1,marginBottom:0,borderColor:C.teal,color:C.teal}}>✔ Aceptar</button>
+                <button onClick={()=>{setRechazoOt(o);setMotivo('');setModal('rechazo');}} style={{...btnS,flex:1,marginBottom:0,borderColor:C.rojo,color:C.rojo}}>✖ Rechazar</button>
+              </div>
+            </div>);})}
         </div>)}
-      {activas.map(o=>(
+      {activas.map(o=>{ const c=cust[o.customer_id]||{}; return (
         <button key={o.id} onClick={()=>{setSel(o.id);setAnswers({});setCupon('');setCajas('');setCostos([]);setFirma(null);setManual(false);setFotoEtiqueta(null);setGar({aplica:'',causa:''});setCobro({tipo:'',medio:''});}} style={{...btnS,textAlign:'left',padding:14}}>
           <div style={{display:'flex',justifyContent:'space-between'}}><b style={{color:C.naranja}}>OT-{o.ot_number}</b><span style={{color:colorEst(o.estado),fontWeight:800,fontSize:11}}>{o.estado.toUpperCase()}</span></div>
-          <div style={{color:C.tinta,fontSize:13,marginTop:4}}>{(cust[o.customer_id]||{}).nombre||'Cliente'} · {o.tipo}</div>
-          <div style={{color:C.gris,fontSize:11,marginTop:2}}>{o.direccion||(cust[o.customer_id]||{}).direccion||''}</div>
-        </button>))}
+          <div style={{color:C.tinta,fontSize:13,marginTop:4}}>{c.nombre||'Cliente'} · {o.tipo}</div>
+          <div style={{color:C.gris,fontSize:11,marginTop:2}}>{o.direccion||c.direccion||''}</div>
+        </button>);})}
       {activas.length===0&&pendientes.length===0&&<p style={{color:C.gris}}>Sin OTs activas por ahora.</p>}
     </main>
   );
 
   return (
     <main style={{minHeight:'100vh',background:C.fondo,fontFamily:'system-ui,sans-serif',padding:16,maxWidth:560,margin:'0 auto',paddingBottom:60}}>
+      {Toast}
       <button onClick={()=>setSel(null)} style={{...btnS,width:'auto',padding:'6px 12px'}}>← Mis órdenes</button>
       <div style={{display:'flex',gap:6,margin:'10px 0'}}>
         {['Orden','Camino','Servicio','Cierre'].map((s,i)=><div key={s} style={{flex:1,textAlign:'center',padding:'7px 0',borderRadius:8,fontSize:11,fontWeight:800,background:i===paso?C.naranja:i<paso?C.verde:C.panel,color:i<=paso?'#14100c':C.gris,border:`1px solid ${i<=paso?'transparent':C.borde}`}}>{i+1}·{s}</div>)}
@@ -244,10 +244,10 @@ ${fotos.length?`<p><b>Anexo fotográfico:</b></p>${fotos.map(f=>`<img src="${f}"
 
       {paso===1&&(
         <div>
-          {ot.estado==='Asignada'||ot.estado==='Aceptada'? <button onClick={()=>enCamino(ot)} style={{...btnG,background:C.naranja}}>🚐 En camino (avisa al cliente por WhatsApp)</button>:null}
+          {(ot.estado==='Asignada'||ot.estado==='Aceptada')? <button onClick={()=>enCamino(ot)} style={btnG}>🚐 En camino (avisa al cliente por WhatsApp)</button>:null}
           {ot.estado==='En Ruta'? <button onClick={()=>confirmarLlegada(ot)} style={{...btnG,background:C.teal}}>📍 Confirmar llegada (geocerca 100 m)</button>:null}
           {ot.estado==='Llegada'? <button onClick={()=>parche(ot,'Trabajando')} style={{...btnG,background:C.amarillo}}>🔧 Iniciar servicio</button>:null}
-          <p style={{color:C.gris,fontSize:12}}>Los cambios son inmediatos en tu pantalla y en la mesa central.</p>
+          <p style={{color:C.gris,fontSize:12}}>Los cambios son inmediatos en tu pantalla y en mesa central.</p>
         </div>
       )}
 
@@ -307,9 +307,9 @@ ${fotos.length?`<p><b>Anexo fotográfico:</b></p>${fotos.map(f=>`<img src="${f}"
       {modal==='rechazo'&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.75)',display:'grid',placeItems:'center',padding:20,zIndex:50}}>
           <div style={{background:C.panel,border:`1px solid ${C.rojo}`,borderRadius:14,padding:20,width:'100%',maxWidth:420}}>
-            <h3 style={{color:C.rojo,margin:'0 0 10px'}}>Motivo del rechazo * ({selRech.length} OT)</h3>
+            <h3 style={{color:C.rojo,margin:'0 0 10px'}}>Motivo del rechazo * (OT-{rechazoOt?rechazoOt.ot_number:''})</h3>
             <textarea style={caja} rows="3" placeholder="Ej: ruta muy larga, vehículo averiado, sin acceso al cliente…" value={motivo} onChange={e=>setMotivo(e.target.value)}/>
-            <button onClick={rechazarSel} style={{...btnG,background:C.rojo,color:'#fff'}}>Confirmar rechazo</button>
+            <button onClick={confirmarRechazo} style={{...btnG,background:C.rojo,color:'#fff'}}>Confirmar rechazo</button>
             <button onClick={()=>setModal(null)} style={btnS}>Cancelar</button>
           </div>
         </div>)}
