@@ -17,12 +17,15 @@ export async function PATCH(req,{ params }){
   if(errores.length) return json({ error:'Antifraude: '+errores.join(' | ') }, 409);
   const boxes = body.boxCode ? [body.boxCode] : (body.scannedCodes||[]);
   if(boxes.length) await db.from('ot_events').insert([{ ot_id:otId, evento:'scan_cajas', detalle:{ codes: boxes } }]);
+  if(body.motivo) await db.from('ot_events').insert([{ ot_id:otId, evento:'motivo', detalle:{ estado:newStatus, motivo:body.motivo } }]);
+  if(body.area_responsable) await db.from('ot_events').insert([{ ot_id:otId, evento:'pausa_repuesto', detalle:{ area:body.area_responsable } }]);
   const { data, error } = await db.rpc('cambiar_estado_ot',{ p_ot_id:otId, p_estado:newStatus });
   if(error) return json({ error:error.message }, 400);
   const patch={};
   if(body.financials||body.financialData) patch.financial_data = body.financials||body.financialData;
   if(body.checklist) patch.checklist_responses = body.checklist;
   if(body.latitude!=null) patch.geo = { lat:body.latitude, lng:body.longitude };
+  if(body.firma) patch.evidence_urls = [ ...((data&&data.evidence_urls)||[]), body.firma ];
   if(Object.keys(patch).length) await db.from('work_orders').update(patch).eq('id',otId);
   return json({ ok:true, ot:data });
 }
