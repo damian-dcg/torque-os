@@ -33,7 +33,7 @@ export async function GET(req){
     const out=[];
     (ck.blocks||[]).forEach(bc=>{
       const b=blk[bc]; if(!b) return;
-      (b.items||[]).forEach((it,i)=>out.push({ id:bc+'_'+i, type: it.t==='sel'?'select': it.t==='foto'?'photo':'text', label:it.l, required:!!it.r, options:it.o||null }));
+           (b.items||[]).forEach((it,i)=>out.push({ id:it.id||bc+'_'+i, type: it.t==='sel'?'select': it.t==='foto'?'photo': it.t==='num'?'number': it.t==='tit'?'title':'text', label:it.l, required:!!it.r, options:it.o||null, dependsOn:it.dep||null }));
     });
     return out;
   };
