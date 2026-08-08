@@ -74,7 +74,7 @@ export default function Consola(){
     return okQ&&(!fEst||o.estado===fEst);
   });
 
-  const TABS=[['dash','Dashboard'],['buzon','Buzón ('+buzón.length+')'],['ots','Órdenes'],['nueva','Nueva OT'],['clientes','Clientes'],['agenda','Agenda'],['config','Configuración']];
+  const TABS=[['dash','Dashboard'],['buzon','Buzón ('+buzón.length+')'],['ots','Órdenes'],['nueva','Nueva OT'],['clientes','Clientes'],['agenda','Agenda'],['checklists','Checklists'],['red','Red SAT'],['config','Configuración']];
 
   return (
     <main style={S.main}>
