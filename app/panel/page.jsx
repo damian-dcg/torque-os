@@ -147,6 +147,7 @@ export default function Panel(){
     });
   },[]);
 
+  useEffect(()=>{ const t=setInterval(()=>{ cargar(); },15000); return ()=>clearInterval(t); },[]);
   async function cargar(){
     const [c,o,s,r,serv,tar]=await Promise.all([
       supabase.from('customers').select('*').order('id',{ascending:false}).limit(100),
