@@ -165,6 +165,8 @@ export default function Consola(){
               </table></div>
           </div>)}
 
+        {tab==='checklists'&&<ModChecklists avisar={avisar}/>}
+        {tab==='red'&&<ModRed avisar={avisar}/>}
         {tab==='config'&&<ModConfig tenant={tenant} avisar={avisar} onTenant={setTenant}/>}
       </div>
 
