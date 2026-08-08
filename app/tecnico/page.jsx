@@ -69,8 +69,9 @@ export default function Tecnico(){
       const rm={}; (r.data||[]).forEach(x=>rm[x.id]=x.nombre); setRegs(rm);
       const bm={}; (b.data||[]).forEach(x=>bm[x.code]=x); setBlocks(bm); setChecks(ck.data||[]);
     })();
-    const ch=supabase.channel('rt-tec').on('postgres_changes',{event:'*',schema:'public',table:'work_orders'},()=>{ cargarOTs(); }).subscribe();
-    return ()=>supabase.removeChannel(ch);
+        const ch=supabase.channel('rt-tec').on('postgres_changes',{event:'*',schema:'public',table:'work_orders'},()=>{ cargarOTs(); }).subscribe();
+    const ch2=supabase.channel('rt-notif').on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications'},(p)=>{ const n=p.new; if(n.user_id===me.id||(me.company_id&&n.company_id===me.company_id)) avisar(n.titulo,T.info); }).subscribe();
+    return ()=>{ supabase.removeChannel(ch); supabase.removeChannel(ch2); };
   },[user]);
 
   function encolar(otId,body){ const q=JSON.parse(localStorage.getItem('tq_queue')||'[]'); q.push({otId,body,ts:Date.now()}); localStorage.setItem('tq_queue',JSON.stringify(q)); setCola(q); }
