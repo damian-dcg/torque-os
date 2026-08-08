@@ -6,6 +6,8 @@ import { T, S, estColor, fmtCLP, fmtFecha } from '../../lib/ui';
 import ModNuevaOT from '../../lib/consola/mod_nuevaot';
 import ModClientes from '../../lib/consola/mod_clientes';
 import ModConfig from '../../lib/consola/mod_config';
+import ModChecklists from '../../lib/consola/mod_checklists';
+import ModRed from '../../lib/consola/mod_red';
 
 export default function Consola(){
   const [me,setMe]=useState(null); const [tenant,setTenant]=useState(null);
