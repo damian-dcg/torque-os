@@ -147,7 +147,15 @@ export default function Panel(){
     });
   },[]);
 
-  useEffect(()=>{ const t=setInterval(()=>{ cargar(); },15000); return ()=>clearInterval(t); },[]);
+    useEffect(()=>{
+    const ch=supabase.channel('rt-consola')
+      .on('postgres_changes',{event:'*',schema:'public',table:'work_orders'},()=>cargar())
+      .on('postgres_changes',{event:'*',schema:'public',table:'insistencias'},()=>cargar())
+      .on('postgres_changes',{event:'*',schema:'public',table:'surveys_nps'},()=>cargar())
+      .subscribe();
+    const t=setInterval(()=>{ cargar(); },60000);
+    return ()=>{ supabase.removeChannel(ch); clearInterval(t); };
+  },[]);
   async function cargar(){
     const [c,o,s,r,serv,tar]=await Promise.all([
       supabase.from('customers').select('*').order('id',{ascending:false}).limit(100),
