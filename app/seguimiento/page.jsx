@@ -2,60 +2,55 @@
 import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 
-const inp = { width:'100%', padding:10, borderRadius:7, border:'1px solid #d9d4c9', background:'#fff', fontSize:13, boxSizing:'border-box', color:'#191c1f' };
-const lab = { fontFamily:'monospace', fontSize:10, letterSpacing:1, color:'#7a766c', display:'block', marginBottom:4, textTransform:'uppercase' };
-const COLOR = { recibida:'#2f6fc0', diagnostico:'#2f6fc0', esperando_repuestos:'#c79420', en_reparacion:'#ff6b2c', pruebas:'#ff6b2c', lista:'#2f9e52', entregada:'#2f9e52', cerrada:'#2f9e52', anulada:'#8a8577' };
+const TEAL='#3ec6b2'; const NEGRO='#1c1c1c'; const FONDO='#f7f9fa';
+const inp={width:'100%',padding:'14px 22px',borderRadius:999,border:'1px solid #c9d2d8',background:'#fff',fontSize:15,marginBottom:12,boxSizing:'border-box',color:'#222'};
+const estColor=e=>({'Ingresada':'#3d9df0','Asignada':'#3d9df0','Aceptada':'#2cd4bf','Rechazada':'#f0564a','En Ruta':'#ff6b2c','Llegada':'#2cd4bf','Trabajando':'#ffb020','Esperando Repuesto':'#f0564a','Finalizada':'#2fd47e','Revisión QA':'#9d7bff','Cerrada':'#2fd47e','Anulada':'#8fa3bf'}[e]||'#8fa3bf');
 
 export default function Seguimiento(){
-  const [f,setF]=useState({num:'',email:''});
-  const [ot,setOt]=useState(null);
-  const [error,setError]=useState('');
-  const [com,setCom]=useState('');
-  const [insOk,setInsOk]=useState('');
-  const [cargando,setCargando]=useState(false);
+  const [num,setNum]=useState(''); const [tel,setTel]=useState('');
+  const [r,setR]=useState(null); const [err,setErr]=useState('');
+  const [msg,setMsg]=useState(''); const [enviado,setEnviado]=useState(false);
 
-  async function buscar(e){
-    e.preventDefault(); setError(''); setOt(null); setCargando(true);
-    const {data}=await supabase.rpc('consultar_ot_publica',{p_ot_number:Number(f.num),p_email:f.email});
-    setCargando(false);
-    if(data&&data.ok) setOt(data); else setError(data?data.error:'Error');
+  async function buscar(e){ e.preventDefault(); setErr(''); setR(null);
+    const {data,error}=await supabase.rpc('portal_consulta',{p_num:Number(num),p_tel:tel});
+    if(error) setErr(error.message); else if(!data.ok) setErr(data.error); else setR(data);
   }
-  async function insistir(e){
-    e.preventDefault(); setInsOk('');
-    const {error:err}=await supabase.rpc('registrar_insistencia',{p_ot_number:Number(f.num),p_email:f.email,p_comentario:com||'Solicito actualización del estado de mi OT'});
-    if(err) setError(err.message);
-    else { setInsOk('Insistencia registrada. El equipo de servicio la verá en su consola.'); setCom(''); const {data}=await supabase.rpc('consultar_ot_publica',{p_ot_number:Number(f.num),p_email:f.email}); if(data&&data.ok) setOt(data); }
+  async function insistir(e){ e.preventDefault(); if(!msg.trim()) return;
+    const {data}=await supabase.rpc('portal_insistencia',{p_num:Number(num),p_msg:msg});
+    if(data&&data.ok){ setEnviado(true); setMsg(''); }
   }
 
   return (
-    <main style={{minHeight:'100vh',background:'#f6f4ef',color:'#191c1f',fontFamily:'system-ui,sans-serif',padding:'30px 16px'}}>
-      <div style={{maxWidth:560,margin:'0 auto'}}>
-        <h1 style={{fontSize:26,fontWeight:800,margin:'0 0 4px'}}>Seguimiento de tu <span style={{color:'#ff6b2c'}}>OT</span></h1>
-        <p style={{color:'#7a766c',fontSize:12,margin:'0 0 18px'}}>DCG · Ingresa tu número de orden y el email con que registraste la solicitud.</p>
-        <form onSubmit={buscar} style={{background:'#fff',border:'1px solid #e2ddd2',borderRadius:10,padding:20,marginBottom:14}}>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-            <div><label style={lab}>N° de OT *</label><input style={inp} required type="number" placeholder="5007" value={f.num} onChange={e=>setF({...f,num:e.target.value})} /></div>
-            <div><label style={lab}>Email *</label><input style={inp} required type="email" value={f.email} onChange={e=>setF({...f,email:e.target.value})} /></div>
-          </div>
-          <button type="submit" disabled={cargando} style={{marginTop:12,width:'100%',padding:12,borderRadius:8,border:0,background:cargando?'#c9c3b6':'#14161a',color:'#fff',fontWeight:700,cursor:cargando?'wait':'pointer'}}>{cargando?'Buscando…':'Consultar estado'}</button>
+    <main style={{minHeight:'100vh',background:FONDO,fontFamily:"system-ui,'Segoe UI',Arial,sans-serif"}}>
+      <header style={{background:NEGRO,padding:'22px 40px',display:'flex',alignItems:'center',gap:14}}>
+        <div style={{color:TEAL,fontWeight:900,fontSize:26,letterSpacing:2}}>BIANCHI</div>
+        <div style={{color:'#fff',fontSize:13,opacity:.8}}>Seguimiento de OT</div>
+        <a href="/solicitud" style={{marginLeft:'auto',color:'#fff',fontSize:13,textDecoration:'none',border:'1px solid '+TEAL,borderRadius:999,padding:'8px 18px'}}>Nueva solicitud</a>
+      </header>
+      <div style={{maxWidth:640,margin:'0 auto',padding:'40px 18px'}}>
+        <h1 style={{textAlign:'center',fontSize:28,color:NEGRO,margin:'0 0 20px'}}>¿Cómo va mi orden?</h1>
+        <form onSubmit={buscar} style={{background:'#fff',borderRadius:24,padding:26,boxShadow:'0 6px 24px rgba(0,0,0,.06)'}}>
+          <input style={inp} type="number" required placeholder="Número de OT (ej: 5017)" value={num} onChange={e=>setNum(e.target.value)}/>
+          <input style={inp} required placeholder="Teléfono con el que solicitaste" value={tel} onChange={e=>setTel(e.target.value)}/>
+          <button style={{background:TEAL,color:'#fff',borderRadius:999,padding:'13px 26px',border:0,fontWeight:800,fontSize:15,cursor:'pointer'}}>Consultar</button>
         </form>
-        {error && <p style={{color:'#c0392b',fontSize:13,background:'#fdecea',border:'1px solid #e5b6b1',borderRadius:8,padding:10}}>{error}</p>}
-        {ot && (
-          <div style={{background:'#fff',border:'1px solid #e2ddd2',borderRadius:10,padding:20}}>
+        {err&&<p style={{color:'#d33',marginTop:14}}>{err}</p>}
+        {r&&(
+          <div style={{background:'#fff',borderRadius:24,padding:26,marginTop:18,boxShadow:'0 6px 24px rgba(0,0,0,.06)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <span style={{fontFamily:'monospace',fontSize:20}}>OT-{f.num}</span>
-              <span style={{fontWeight:700,color:COLOR[ot.estado]||'#8a8577',textTransform:'uppercase',fontSize:13}}>{ot.estado.replace('_',' ')}</span>
+              <b style={{fontSize:18,color:NEGRO}}>OT-{r.ot.numero}</b>
+              <span style={{background:estColor(r.ot.estado)+'22',color:estColor(r.ot.estado),borderRadius:999,padding:'6px 14px',fontWeight:800,fontSize:12}}>{r.ot.estado}</span>
             </div>
-            <p style={{fontSize:12,color:'#7a766c',margin:'8px 0 0'}}>Tipo: {ot.tipo.replace('_',' ')} · Ingresada: {String(ot.creada).slice(0,10)} · Insistencias previas: {ot.insistencias}</p>
-            <form onSubmit={insistir} style={{marginTop:14,borderTop:'1px solid #eee8dc',paddingTop:14}}>
-              <label style={lab}>¿Necesitas una respuesta? Genera una insistencia</label>
-              <textarea style={inp} rows="2" placeholder="Ej: llevo 5 días sin novedades, por favor contactar…" value={com} onChange={e=>setCom(e.target.value)} />
-              <button type="submit" style={{marginTop:8,width:'100%',padding:11,borderRadius:8,border:0,background:'#ff6b2c',color:'#14100c',fontWeight:700,cursor:'pointer'}}>Generar insistencia</button>
-              {insOk && <p style={{color:'#2f9e52',fontSize:12,marginTop:8}}>{insOk}</p>}
+            <p style={{color:'#5a6a72',fontSize:13,margin:'6px 0 14px'}}>{r.ot.tipo} · ingresada {new Date(r.ot.creada).toLocaleDateString('es-CL')}</p>
+            <h3 style={{fontSize:14,color:NEGRO}}>Historial</h3>
+            {r.eventos.map((ev,i)=><p key={i} style={{color:'#444',fontSize:13,margin:'4px 0'}}>• {new Date(ev.fecha).toLocaleString('es-CL')} — {ev.evento}</p>)}
+            {r.eventos.length===0&&<p style={{color:'#5a6a72',fontSize:13}}>Sin movimientos aún.</p>}
+            <h3 style={{fontSize:14,color:NEGRO,marginTop:16}}>¿Necesitas algo más? Escríbenos (insistencia)</h3>
+            <form onSubmit={insistir}>
+              <textarea style={{...inp,borderRadius:18,minHeight:80}} placeholder="Ej: necesito reagendar la visita…" value={msg} onChange={e=>setMsg(e.target.value)}/>
+              <button style={{background:NEGRO,color:'#fff',borderRadius:999,padding:'11px 22px',border:0,fontWeight:700,fontSize:14,cursor:'pointer'}}>{enviado?'✅ Enviado al agente':'Enviar'}</button>
             </form>
-          </div>
-        )}
+          </div>)}
       </div>
-    </main>
-  );
+    </main>);
 }
