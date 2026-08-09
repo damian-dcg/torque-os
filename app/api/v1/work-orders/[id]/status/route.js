@@ -15,6 +15,13 @@ export async function PATCH(req,{ params }){
     if(error) errores.push(error.message);
   }
   if(errores.length) return json({ error:'Antifraude: '+errores.join(' | ') }, 409);
+  const { data: otRow } = await db.from('work_orders').select('tipo').eq('id',otId).single();
+  const tipo=(otRow&&otRow.tipo||'').toLowerCase();
+  if(tipo.includes('armado') && newStatus==='Revisión QA'){
+    if(!body.couponCode) return json({ error:'Validación doble obligatoria: falta Código Cupón' }, 400);
+    const hasBox = !!(body.boxCode&&String(body.boxCode).trim()) || (body.scannedCodes&&body.scannedCodes.length);
+    if(!hasBox) return json({ error:'Validación doble obligatoria: falta Código Caja' }, 400);
+  }
   const boxes = body.boxCode ? [body.boxCode] : (body.scannedCodes||[]);
   if(boxes.length) await db.from('ot_events').insert([{ ot_id:otId, evento:'scan_cajas', detalle:{ codes: boxes } }]);
   if(body.motivo) await db.from('ot_events').insert([{ ot_id:otId, evento:'motivo', detalle:{ estado:newStatus, motivo:body.motivo } }]);
