@@ -145,7 +145,7 @@ export default function Tecnico(){
     const checklist={...answers,w_garantia:gar.aplica,w_causa:gar.causa,w_cobro:cobro.tipo,w_medio:cobro.medio};
     setOts(prev=>prev.map(x=>x.id===ot.id?{...x,estado:'Revisión QA'}:x));
     const tk=await token();
-    const body={status:'Revisión QA',checklist,couponCode:cupon.trim()||undefined,boxCode:cajas.trim()||undefined,financials:{baseCost:15000,manualItems:costos,totalCost:total,garantia:gar.aplica,cobro:cobro.tipo},firma};
+    const body={status:'Revisión QA',checklist,couponCode:cupon.trim()||undefined,boxCode:(ot.tipo==='armado_volumen'?cajas:caja).trim()||undefined,financials:{baseCost:15000,manualItems:costos,totalCost:total,garantia:gar.aplica,cobro:cobro.tipo},firma};
     try{
       const r=await fetch(`/api/v1/work-orders/${ot.id}/status`,{method:'PATCH',headers:{Authorization:`Bearer ${tk}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
       const d=await r.json();
