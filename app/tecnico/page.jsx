@@ -139,7 +139,8 @@ export default function Tecnico(){
   async function finalizar(){
     const pend=faltaObligatorios(); if(pend.length){ avisar('⛔ Checklist incompleto: '+pend.slice(0,3).join(' · '),T.danger); return; }
     if(!firma){ avisar('⛔ Falta la firma del cliente',T.danger); return; }
-    if(esArmado&&!cupon.trim()){ avisar('⛔ Falta el código de cupón',T.danger); return; }
+    if(esArmado&&!cupon.trim()){ avisar('⛔ Validación doble: falta Código Cupón',T.danger); return; }
+    if(esArmado&&ot.tipo!=='armado_volumen'&&!caja.trim()){ avisar('⛔ Validación doble: falta Código Caja',T.danger); return; }
     if(esArmado&&manual&&!fotoEtiqueta){ avisar('⛔ Ingreso manual exige foto de la etiqueta',T.danger); return; }
     const checklist={...answers,w_garantia:gar.aplica,w_causa:gar.causa,w_cobro:cobro.tipo,w_medio:cobro.medio};
     setOts(prev=>prev.map(x=>x.id===ot.id?{...x,estado:'Revisión QA'}:x));
