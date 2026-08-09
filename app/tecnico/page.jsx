@@ -320,8 +320,9 @@ ${fotos.length?`<p><b>Anexo fotográfico:</b></p>${fotos.map(f=>`<img src="${f}"
           {esArmado&&(
             <div style={S.card}>
               <h4 style={{...S.h2,color:T.danger}}>Antifraude</h4>
-              {ot.tipo==='armado_volumen'&&<div><label style={S.label}>Códigos de caja (coma)</label><input style={S.input} value={cajas} onChange={e=>setCajas(e.target.value)}/></div>}
-              <label style={S.label}>Código de cupón *</label>
+              {ot.tipo==='armado_volumen'? <div><label style={S.label}>Códigos de caja (coma) *</label><input style={S.input} value={cajas} onChange={e=>setCajas(e.target.value)}/></div>
+              : <div><label style={S.label}>Código Caja *</label><input style={S.input} value={caja} onChange={e=>setCaja(e.target.value)} placeholder="Ej: CAJA-991"/></div>}
+              <label style={S.label}>Código Cupón * (único · antifraude)</label>
               <input style={S.input} value={cupon} onChange={e=>setCupon(e.target.value)} placeholder="BLI00003"/>
               <label style={{...S.label,display:'flex',gap:8,alignItems:'center'}}><input type="checkbox" checked={manual} onChange={e=>setManual(e.target.checked)}/> Etiqueta ilegible → ingreso manual</label>
               {manual&&<div><label style={S.label}>Foto etiqueta dañada *</label><input type="file" accept="image/*" capture="environment" style={{...S.input,color:T.sub}} onChange={async e=>{ setFotoEtiqueta(await subirFoto(ot.id,e.target.files[0])); }}/>{fotoEtiqueta&&<img src={fotoEtiqueta} style={{width:60,height:60,objectFit:'cover',borderRadius:8,marginTop:6}}/>}</div>}
