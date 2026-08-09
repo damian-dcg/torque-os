@@ -272,6 +272,11 @@ ${fotos.length?`<p><b>Anexo fotográfico:</b></p>${fotos.map(f=>`<img src="${f}"
             <p style={{margin:0,color:T.text,fontSize:15,fontWeight:600}}>{ot.tipo} · prioridad {ot.prioridad}</p>
             <p style={{margin:'8px 0 0',color:T.sub,fontSize:14}}>{ot.descripcion}</p>
           </div>
+          <div style={S.card}>
+            <h4 style={{...S.h2,color:T.teal}}>Checklist asignado</h4>
+            <p style={{color:T.text,fontSize:14,fontWeight:700}}>{(checks.find(c=>c.code===(ot.checklist_code||defaultByType(ot.tipo)))||{}).nombre||'Sin checklist'}</p>
+            <p style={{...S.sub,margin:0}}>{grupos.length} bloques · {grupos.reduce((s,g)=>s+(g.items||[]).length,0)} controles · se habilita al iniciar el servicio.</p>
+          </div>
         </div>)}
 
       {paso===1&&(
