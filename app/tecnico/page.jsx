@@ -28,7 +28,7 @@ export default function Tecnico(){
   const [blocks,setBlocks]=useState({}); const [checks,setChecks]=useState([]);
   const [sel,setSel]=useState(null);
   const [answers,setAnswers]=useState({});
-  const [cupon,setCupon]=useState(''); const [manual,setManual]=useState(false); const [fotoEtiqueta,setFotoEtiqueta]=useState(null); const [cajas,setCajas]=useState('');
+  const [cupon,setCupon]=useState(''); const [manual,setManual]=useState(false); const [fotoEtiqueta,setFotoEtiqueta]=useState(null); const [cajas,setCajas]=useState(''); const [caja,setCaja]=useState('');
   const [firma,setFirma]=useState(null);
   const [costos,setCostos]=useState([]); const [nuevoCosto,setNuevoCosto]=useState({concepto:'',monto:''});
   const [gar,setGar]=useState({aplica:'',causa:''}); const [cobro,setCobro]=useState({tipo:'',medio:''});
