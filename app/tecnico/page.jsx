@@ -205,6 +205,15 @@ ${fotos.length?`<p><b>Anexo fotográfico:</b></p>${fotos.map(f=>`<img src="${f}"
       </form>
     </main>);
 
+  if(user&&me&&!jornada) return (
+    <main style={{...S.main,display:'grid',placeItems:'center',padding:16}}>
+      <div style={{...S.card,maxWidth:420,width:'100%',textAlign:'center',padding:30}}>
+        <h1 style={{...S.h1,fontSize:24}}>Hola, {((me.nombre||'').split(' ')[0])}</h1>
+        <p style={{...S.sub,margin:'10px 0 18px'}}>Hoy tienes {pendientes.length+activas.length} servicio(s) en tu ruta.</p>
+        <button style={S.btn(T.ok)} onClick={()=>{ const k='tq_jornada_'+new Date().toDateString(); localStorage.setItem(k,'1'); setJornada('1'); }}>Comenzar jornada</button>
+      </div>
+    </main>);
+  
   if(!ot) return (
     <main style={{...S.main,padding:16,maxWidth:600,margin:'0 auto'}}>
       {toast&&<div style={S.toast(toast.color)}>{toast.txt}</div>}
