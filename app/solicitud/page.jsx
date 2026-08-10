@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 
 const TEAL='#3ec6b2'; const NEGRO='#1c1c1c'; const FONDO='#f7f9fa';
