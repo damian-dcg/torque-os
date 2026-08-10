@@ -11,7 +11,7 @@ const PROD=['BICICLETA','BICICLETA ELECTRICA','MAQUINA','SCOOTER ELECTRICO','ACC
 export default function Solicitud(){
   const [flujo,setFlujo]=useState('armado');
   const [f,setF]=useState({nombre:'',rut:'',region:'',comuna:'',direccion:'',telefono:'',email:'',producto:'BICICLETA',modelo:'',boleta:'',fecha:'',tienda:'',cantidad:'1',detalle:''});
-  const [file,setFile]=useState(null);
+  const [file,setFile]=useState(null); const [hp,setHp]=useState(''); const t0=useRef(Date.now());
   const [busy,setBusy]=useState(false); const [ok,setOk]=useState(null); const [err,setErr]=useState('');
 
   async function enviar(e){
