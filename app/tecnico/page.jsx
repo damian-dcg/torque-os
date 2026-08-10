@@ -348,7 +348,14 @@ ${fotos.length?`<p><b>Anexo fotográfico:</b></p>${fotos.map(f=>`<img src="${f}"
           {esArmado&&(
             <div style={S.card}>
               <h4 style={{...S.h2,color:T.danger}}>Antifraude</h4>
-              {ot.tipo==='armado_volumen'? <div><label style={S.label}>Códigos de caja (coma) *</label><input style={S.input} value={cajas} onChange={e=>setCajas(e.target.value)}/></div>
+                            {ot.tipo==='armado_volumen'? <div>
+                <label style={S.label}>Códigos de caja únicos * (escáner continuo o manual)</label>
+                <input style={S.input} value={cajas} onChange={e=>setCajas(e.target.value)}/>
+                <button type="button" style={S.btnO(scanOn?T.danger:T.info)} onClick={()=>setScanOn(!scanOn)}>{scanOn?'⏹ Detener escáner':'📷 Escáner continuo'}</button>
+                {scanOn&&<CamScan onCode={(v)=>{ const list=cajas.split(',').map(s=>s.trim()).filter(Boolean);
+                  if(list.includes(v)){ navigator.vibrate&&navigator.vibrate([90,40,90]); avisar('⛔ Duplicado: '+v,T.danger); }
+                  else { navigator.vibrate&&navigator.vibrate(120); setCajas([...list,v].join(', ')); avisar('✔ '+v,T.ok); } }}/>}
+              </div>
               : <div><label style={S.label}>Código Caja *</label><input style={S.input} value={caja} onChange={e=>setCaja(e.target.value)} placeholder="Ej: CAJA-991"/></div>}
               <label style={S.label}>Código Cupón * (único · antifraude)</label>
               <input style={S.input} value={cupon} onChange={e=>setCupon(e.target.value)} placeholder="BLI00003"/>
