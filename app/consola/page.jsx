@@ -80,7 +80,7 @@ export default function Consola(){
     return okQ&&(!fEst||o.estado===fEst);
   });
 
-  const TABS=[['dash','Dashboard'],['buzon','Buzón ('+buzón.length+')'],['ots','Órdenes'],['nueva','Nueva OT'],['clientes','Clientes'],['agenda','Agenda'],['checklists','Checklists'],['red','Red SAT'],['reportes','Reportes'],['catalogos','Catálogos'],['agenda2','Agenda visual'],['activos','Activos'],['config','Configuración']];
+  const TABS=[['dash','Dashboard'],['buzon','Buzón ('+buzón.length+')'],['ots','Órdenes'],['nueva','Nueva OT'],['clientes','Clientes'],['agenda','Agenda'],['checklists','Checklists'],['red','Red SAT'],['reportes','Reportes'],['catalogos','Catálogos'],['agenda2','Agenda visual'],['activos','Activos'],['presupuestos','Presupuestos'],['bodega','Bodega'],['config','Configuración']];
   return (
     <main style={S.main}>
       {toast&&<div style={S.toast(toast.color)}>{toast.txt}</div>}
