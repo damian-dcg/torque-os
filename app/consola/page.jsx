@@ -172,6 +172,8 @@ export default function Consola(){
         {tab==='red'&&<ModRed avisar={avisar}/>}
         {tab==='reportes'&&<ModReportes/>}
         {tab==='catalogos'&&<ModCatalogos avisar={avisar}/>}
+        {tab==='agenda2'&&<ModAgenda avisar={avisar}/>}
+        {tab==='activos'&&<ModActivos avisar={avisar}/>}
         {tab==='config'&&<ModConfig tenant={tenant} avisar={avisar} onTenant={setTenant}/>}
       </div>
 
