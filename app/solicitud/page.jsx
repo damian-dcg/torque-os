@@ -15,7 +15,7 @@ export default function Solicitud(){
   const [busy,setBusy]=useState(false); const [ok,setOk]=useState(null); const [err,setErr]=useState('');
 
   async function enviar(e){
-    e.preventDefault(); setBusy(true); setErr('');
+    e.preventDefault(); if(hp||Date.now()-t0.current<3000){ setOk(5000); return; } setBusy(true); setErr('');
     try{
       let boletaUrl=null;
       if(file){ const path=`boleta-${Date.now()}-${file.name}`; const {error}=await supabase.storage.from('boletas').upload(path,file); if(!error) boletaUrl=supabase.storage.from('boletas').getPublicUrl(path).data.publicUrl; }
