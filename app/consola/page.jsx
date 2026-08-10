@@ -219,8 +219,8 @@ export default function Consola(){
             {sel.financial_data&&sel.financial_data.totalCost!=null&&(
               <p style={{color:T.ok,fontWeight:800,marginTop:10}}>Total terreno: {fmtCLP(sel.financial_data.totalCost)}</p>)}
                         <a style={{...S.btnO(T.ok),display:'inline-block',marginTop:10,textDecoration:'none'}} target="_blank"
-               href={`https://wa.me/${((cust[sel.customer_id]||{}).telefono||'').replace(/[^\d+]/g,'')}?text=${encodeURIComponent('Bianchi Servicio Técnico: '+({Asignada:'su solicitud fue aceptada y asignada.',  'En Ruta':'su técnico va en camino.','Llegada':'su técnico ha llegado.','Trabajando':'su técnico comenzó el servicio.','Esperando Repuesto':'servicio pausado por repuesto; avisaremos reprogramación.','Revisión QA':'servicio finalizado en terreno.','Cerrada':'su orden fue cerrada. ¡Gracias!'}[sel.estado]||'su orden avanzó a '+sel.estado+'.'+' (OT-'+sel.ot_number+')')}`}>
-               💬 Avisar cliente por WhatsApp</a>
+   href={'https://wa.me/'+((cust[sel.customer_id]||{}).telefono||'').replace(/[^\d+]/g,'')+'?text='+encodeURIComponent('Bianchi Servicio Técnico: su OT-'+sel.ot_number+' está en estado '+sel.estado+'.')}>
+   💬 Avisar cliente por WhatsApp</a>
             <h3 style={{...S.h2,color:T.violet,marginTop:14}}>Insistencias del cliente</h3>
             {ins.filter(i=>i.ot_id===sel.id).map(i=><p key={i.id} style={{color:T.text,fontSize:14,margin:'4px 0'}}>{fmtFecha(i.created_at)} — {i.mensaje}</p>)}
             {ins.filter(i=>i.ot_id===sel.id).length===0&&<p style={S.sub}>Sin insistencias.</p>}
