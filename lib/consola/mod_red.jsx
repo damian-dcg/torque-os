@@ -63,7 +63,7 @@ export default function ModRed({avisar}){
           <h2 style={S.h2}>Tarifa pactada por servicio</h2>
           <form onSubmit={crearRate}>
             <select style={S.input} required value={rt.sat_id} onChange={e=>setRt({...rt,sat_id:e.target.value})}><option value="">SAT…</option>{sats.map(s=><option key={s.id} value={s.id}>{s.nombre}</option>)}</select>
-            <select style={S.input} required value={rt.service_type_id} onChange={e=>setRt({...rt,service_type_id:e.target.value})}><option value="">Servicio…</option>{servs.map(s=><option key={s.id} value={s.id}>{s.codigo} · {s.nombre}</option>)}</select>
+            <select style={S.input} required value={rt.service_type_id} onChange={e=>setRt({...rt,service_type_id:e.target.value})}><option value="">Servicio…</option>{servs.map(s=><option key={s.id} value={s.id}>{s.code} · {s.nombre}</option>)}</select>
             <input style={S.input} required type="number" placeholder="Tarifa ($)" value={rt.tarifa} onChange={e=>setRt({...rt,tarifa:e.target.value})}/>
             <button style={S.btn(T.ok)}>Guardar tarifa</button>
           </form>
