@@ -7,6 +7,20 @@ const defaultByType=t=>{const x=(t||'').toLowerCase(); if(x.includes('volumen'))
 const pasoDe=e=>(['Ingresada'].includes(e)?0:['Asignada','Aceptada','En Ruta'].includes(e)?1:['Llegada','Trabajando','Esperando Repuesto'].includes(e)?2:3);
 const dist=(a,b,c,d)=>{const R=6371000,r=x=>x*Math.PI/180;const dLa=r(c-a),dLo=r(d-b);const s=Math.sin(dLa/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(s));};
 
+function CamScan({onCode}){ const video=useRef(null); const [err,setErr]=useState('');
+  useEffect(()=>{ let live=true; let stream=null; let tick=null;
+    (async()=>{ try{
+      if(!('BarcodeDetector' in window)){ setErr('Navegador sin escáner nativo: usa digitación manual.'); return; }
+      const det=new window.BarcodeDetector({formats:['qr_code','ean_13','ean_8','code_128','code_39']});
+      stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+      if(video.current){ video.current.srcObject=stream; await video.current.play(); }
+      tick=setInterval(async()=>{ if(!live||!video.current) return; try{ const c=await det.detect(video.current); if(c.length) onCode(c[0].rawValue); }catch(e){} },500);
+    }catch(e){ setErr('No se pudo abrir la cámara.'); } })();
+    return ()=>{ live=false; if(tick) clearInterval(tick); if(stream) stream.getTracks().forEach(t=>t.stop()); };
+  },[]);
+  return err? <p style={{color:T.warn,fontSize:13}}>{err}</p> : <video ref={video} style={{width:'100%',borderRadius:10,background:'#000'}} muted playsInline/>;
+}
+
 function Firma({onChange}){
   const ref=useRef(null); const draw=useRef(false);
   useEffect(()=>{
