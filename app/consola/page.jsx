@@ -10,6 +10,8 @@ import ModChecklists from '../../lib/consola/mod_checklists';
 import ModRed from '../../lib/consola/mod_red';
 import ModReportes from '../../lib/consola/mod_reportes';
 import ModCatalogos from '../../lib/consola/mod_catalogos';
+import ModAgenda from '../../lib/consola/mod_agenda';
+import ModActivos from '../../lib/consola/mod_activos';
 
 export default function Consola(){
   const [me,setMe]=useState(null); const [tenant,setTenant]=useState(null);
