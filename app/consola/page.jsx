@@ -14,6 +14,8 @@ import ModAgenda from '../../lib/consola/mod_agenda';
 import ModActivos from '../../lib/consola/mod_activos';
 import ModPresupuestos from '../../lib/consola/mod_presupuestos';
 import ModBodega from '../../lib/consola/mod_bodega';
+import ModKpis from '../../lib/consola/mod_kpis';
+import ModConectores from '../../lib/consola/mod_conectores';
 
 export default function Consola(){
   const [me,setMe]=useState(null); const [tenant,setTenant]=useState(null);
