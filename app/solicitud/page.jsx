@@ -86,6 +86,7 @@ export default function Solicitud(){
             </>}
             {(flujo==='garantia'||flujo==='postventa')&&<div><label style={lab}>Describe la falla o servicio requerido *</label><textarea style={{...inp,minHeight:90,borderRadius:18}} required value={f.detalle} onChange={e=>setF({...f,detalle:e.target.value})}/></div>}
             {flujo!=='retail'&&<div><label style={lab}>Adjuntar Boleta (PDF, JPG, PNG) *</label><input style={{...inp,borderRadius:18}} type="file" accept=".pdf,.jpg,.jpeg,.png" required onChange={e=>setFile(e.target.files[0])}/></div>}
+            <input type="text" style={{display:'none'}} value={hp} onChange={e=>setHp(e.target.value)} tabIndex={-1} autoComplete="off"/>
             <p style={{color:'#5a6a72',fontSize:13}}>Todos los campos marcados con (*) son obligatorios.</p>
             {err&&<p style={{color:'#d33',fontSize:14}}>{err}</p>}
             <button disabled={busy} style={{background:TEAL,color:'#fff',borderRadius:999,padding:'15px 30px',border:0,fontWeight:800,fontSize:16,cursor:'pointer',opacity:busy?.6:1}}>{busy?'Enviando…':'Enviar Solicitud'}</button>
