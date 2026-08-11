@@ -3,13 +3,16 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
 import { T, S, estColor, fmtCLP, fmtFecha } from '../ui';
 import Mapa from './Mapa';
+import { geocode } from './geo';
 import HistorialActivo from './HistorialActivo';
 import DiagnosticoPresupuesto from './DiagnosticoPresupuesto';
-import { geocode } from './geo';
 
 export default function FichaOT(props){
-  var ot=props.ot; var cust=props.cust||{}; var avisar=props.avisar||function(){};
-  var onClose=props.onClose; var onChanged=props.onChanged||function(){};
+  var ot=props.ot;
+  var cust=props.cust||{};
+  var avisar=props.avisar||function(){};
+  var onClose=props.onClose||function(){};
+  var onChanged=props.onChanged||function(){};
   var c=cust[ot.customer_id]||{};
   var dp=ot.datos_portal||{};
   var s1=useState([]),ins=s1[0],setIns=s1[1];
@@ -18,10 +21,10 @@ export default function FichaOT(props){
   var s4=useState([]),sats=s4[0],setSats=s4[1];
   var s5=useState({tipo:'',id:''}),asig=s5[0],setAsig=s5[1];
   var s6=useState(ot.fecha_programada||''),fecha=s6[0],setFecha=s6[1];
-  var s9=useState(ot.modalidad||'taller'),modalidad=s9[0],setModalidad=s9[1];
-  var s10=useState(ot.costo_traslado||0),traslado=s10[0],setTraslado=s10[1];
-  var s7=useState(false),mapOpen=s7[0],setMapOpen=s7[1];
-  var s8=useState([]),mapMk=s8[0],setMapMk=s8[1];
+  var s7=useState(ot.modalidad||'taller'),modalidad=s7[0],setModalidad=s7[1];
+  var s8=useState(ot.costo_traslado||0),traslado=s8[0],setTraslado=s8[1];
+  var s9=useState(false),mapOpen=s9[0],setMapOpen=s9[1];
+  var s10=useState([]),mapMk=s10[0],setMapMk=s10[1];
   useEffect(function(){
     (async function(){
       var r=await Promise.all([
@@ -51,7 +54,7 @@ export default function FichaOT(props){
     if(fecha) patch.fecha_programada=fecha;
     var e=await supabase.from('work_orders').update(patch).eq('id',ot.id);
     if(e.error) avisar('⛗ '+e.error.message,T.danger);
-    else { avisar('✅ OT asignada a '+(asig.tipo==='tec'?'técnico':'SSTT'),T.ok); onChanged(); onClose(); }
+    else { avisar('✅ OT asignada',T.ok); onChanged(); onClose(); }
   }
   async function programar(){
     if(!fecha){ avisar('⛗ Elige fecha',T.danger); return; }
@@ -76,7 +79,7 @@ export default function FichaOT(props){
       +'<tr><th>Teléfono</th><td>'+(c.telefono||'')+'</td><th>Dirección</th><td>'+(ot.direccion||c.direccion||'')+'</td></tr>'
       +'<tr><th>Producto</th><td>'+(dp.producto||'')+' '+(dp.modelo||'')+'</td><th>Boleta</th><td>'+(dp.boleta||'')+'</td></tr>'
       +'<tr><th>Asignado a</th><td>'+(nombreAsignado()||'—')+'</td><th>Fecha</th><td>'+(ot.fecha_programada||'—')+'</td></tr></table>'
-      +'<p>'+ (ot.descripcion||'') +'</p><script>window.print()</script></body></html>';
+      +'<p>'+(ot.descripcion||'')+'</p><script>window.print()</script></body></html>';
     w.document.write(html); w.document.close();
   }
   var abierta=['Ingresada','Asignada','Aceptada','En Ruta','Llegada','Trabajando','Esperando Repuesto'].indexOf(ot.estado)>=0;
@@ -88,7 +91,7 @@ export default function FichaOT(props){
           <span style={S.pill(estColor(ot.estado))}>{ot.estado}</span>
         </div>
         <p style={{...S.sub,margin:'6px 0'}}>{c.nombre||'—'} · {ot.tipo} · {fmtFecha(ot.created_at)} · canal {ot.canal}</p>
-        <p style={{...S.sub,margin:'0 0 6px'}}>Asignada a: <b>{nombreAsignado()||'— sin asignar —'}</b> · Fecha programada: <b>{ot.fecha_programada||'—'}</b></p>
+        <p style={{...S.sub,margin:'0 0 6px'}}>Asignada a: <b>{nombreAsignado()||'— sin asignar —'}</b> · Fecha: <b>{ot.fecha_programada||'—'}</b> · {ot.modalidad||'taller'}</p>
 
         <div style={{background:T.surface2,borderRadius:10,padding:12,marginBottom:12}}>
           <h3 style={{...S.h2,margin:'0 0 6px'}}>Cliente</h3>
@@ -99,7 +102,7 @@ export default function FichaOT(props){
             <a style={{...S.btnO(T.info),width:'auto',marginBottom:0,textDecoration:'none'}} href={'tel:'+String(c.telefono||'').replace(/[^\d+]/g,'')}>📞 Llamar</a>
             <a style={{...S.btnO(T.ok),width:'auto',marginBottom:0,textDecoration:'none'}} href={'https://wa.me/'+String(c.telefono||'').replace(/[^\d+]/g,'')} target="_blank">💬 WhatsApp</a>
             <button style={{...S.btnO(T.warn),width:'auto',marginBottom:0}} onClick={verMapa}>🗺 Mapa</button>
-                        <button style={{...S.btnO(T.violet),width:'auto',marginBottom:0}} onClick={function(){ if(props.onOpenCliente) props.onOpenCliente(c); }}>📇 Ficha cliente</button>
+            <button style={{...S.btnO(T.violet),width:'auto',marginBottom:0}} onClick={function(){ if(props.onOpenCliente) props.onOpenCliente(c); }}>📇 Ficha cliente</button>
           </div>
         </div>
 
@@ -112,7 +115,7 @@ export default function FichaOT(props){
 
         <HistorialActivo customer_id={ot.customer_id} ot_id={ot.id}/>
         <DiagnosticoPresupuesto ot={ot} avisar={avisar} onChanged={onChanged}/>
-        
+
         <div style={{background:T.surface2,borderRadius:10,padding:12,marginBottom:12}}>
           <h3 style={{...S.h2,margin:'0 0 6px'}}>Gestión</h3>
           {abierta? <div>
@@ -122,7 +125,7 @@ export default function FichaOT(props){
                 <optgroup label="Técnicos internos">{users.map(function(u){ return <option key={'t'+u.id} value={'tec:'+u.id}>{u.nombre}</option>; })}</optgroup>
                 <optgroup label="SSTT autorizados">{sats.map(function(s){ return <option key={'s'+s.id} value={'sat:'+s.id}>{s.nombre}</option>; })}</optgroup>
               </select>
-               <input style={{...S.input,flex:1,marginBottom:0}} type="date" value={fecha} onChange={function(e){ setFecha(e.target.value); }}/>
+              <input style={{...S.input,flex:1,marginBottom:0}} type="date" value={fecha} onChange={function(e){ setFecha(e.target.value); }}/>
               <select style={{...S.input,flex:1,marginBottom:0}} value={modalidad} onChange={function(e){ setModalidad(e.target.value); }}><option value="taller">En taller</option><option value="domicilio">A domicilio</option></select>
               <input style={{...S.input,flex:1,marginBottom:0}} type="number" placeholder="Traslado $" value={traslado} onChange={function(e){ setTraslado(e.target.value); }}/>
               <button style={{...S.btn(T.brand),width:'auto',marginBottom:0}} onClick={asignar}>Asignar</button>
