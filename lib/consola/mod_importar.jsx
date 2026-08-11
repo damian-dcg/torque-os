@@ -46,11 +46,11 @@ export default function ModImportar(props){
       if(!cid){ saltadas++; return; }
       ots.push({ ext_id:r[0], customer_id:cid, tipo:mapTipo[String(r[8]||'').toUpperCase()]||'servicio',
         estado:String(r[14]||'').toLowerCase().indexOf('cerrada')>=0?'Cerrada':'Ingresada',
-        creado_en:fdate(r[1])?fdate(r[1])+'T12:00:00':null, descripcion:r[38]||null, canal:'vba',
-        tecnico_nombre:r[9]||null, quien_registra:r[6]||null, modelo_limpio:r[41]||r[7]||null,
+        creado_en:fdate(r[1])?fdate(r[1])+'T12:00:00':null, descripcion:r[39]||r[38]||null, canal:'vba',
+        tecnico_nombre:r[9]||null, quien_registra:r[6]||null, modelo_limpio:r[42]||r[7]||null,
         fecha_promesa:fdate(r[10]), fecha_inicio:fdate(r[11]), fecha_fin_tecnico:fdate(r[12]), fecha_entrega_cliente:fdate(r[13]),
-        cantidad_unidades:parseInt(r[39],10)||parseInt(r[15],10)||1,
-        kpi:{tipo_equipo:r[5],tipo_servicio:r[8],horas:parseFloat(r[15])||0,venta_mo:money(r[16]),costo_rep:money(r[17]),venta_rep:money(r[18]),costo_tras:money(r[19]),venta_tras:money(r[20]),costo_otros:money(r[21]),venta_otros:money(r[22]),costo_total:money(r[23]),venta_total:money(r[24]),margen:money(r[25]),pct_margen:r[26],ftf:r[27],dias:parseFloat(r[28])||0,reincidencia:r[29],reclamo:r[30],nota:parseInt(r[31],10)||0,nivel:r[32],usa_rep:r[33],alerta:r[34],mes:r[37],anio:r[38],repuesto:r[40],falla:r[43]} });
+        cantidad_unidades:parseInt(r[40],10)||parseInt(r[15],10)||1,
+        kpi:{tipo_equipo:r[5],tipo_servicio:r[8],horas:0,venta_mo:money(r[16]),costo_rep:money(r[17]),venta_rep:money(r[18]),costo_tras:money(r[19]),venta_tras:money(r[20]),costo_otros:money(r[21]),venta_otros:money(r[22]),costo_total:money(r[23]),venta_total:money(r[24]),margen:money(r[25]),pct_margen:r[26],ftf:r[27],dias:parseFloat(r[28])||0,reincidencia:r[29],reclamo:r[30],nota:parseInt(r[31],10)||0,nivel:r[32],usa_rep:r[33],alerta:r[34],mes:r[37],anio:r[38],repuesto:r[41],falla:r[44]} });
     });
     var ok=0; var primerError='';
     for(var i=0;i<ots.length;i+=200){
