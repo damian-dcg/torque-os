@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
+import { onChange } from '../data';
 import { T, S, fmtCLP } from '../ui';
 function BarsG({data}){ const max=Math.max(...data.map(d=>d.a+d.b),1);
   return <div style={{display:'flex',gap:8,alignItems:'flex-end',height:120}}>{data.map((d,i)=><div key={i} style={{flex:1,textAlign:'center'}}>
