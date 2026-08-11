@@ -26,6 +26,22 @@ export default function ModPresupuestos({avisar,tenant}){
 <tr><td colspan="3"><b>TOTAL</b></td><td><b>${fmtCLP(p.total)}</b></td></tr></table>
 <p>Validez 15 días. Este documento no constituye boleta ni factura.</p><script>window.print()</script></body></html>`);
     w.document.close(); }
+    function pdfPres(p){
+    var c=cust.find(function(x){return x.id===p.customer_id;})||{};
+    var w=window.open('','_blank');
+    var html='<html><head><title>Presupuesto '+p.id+'</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px;font-size:12px;text-align:left}</style></head><body>'
+      +'<h2>'+(tenant?tenant.nombre:'TORQUE·OS')+' · Presupuesto N° '+p.id+'</h2>'
+      +'<p>Cliente: '+(c.nombre||'')+' · Fecha: '+new Date(p.creado_en).toLocaleDateString('es-CL')+'</p>'
+      +'<table><tr><th>Concepto</th><th>Cant.</th><th>Precio</th><th>Total</th></tr>'
+      +(p.items||[]).map(function(i){ return '<tr><td>'+i.concepto+'</td><td>'+i.cantidad+'</td><td>'+fmtCLP(i.precio)+'</td><td>'+fmtCLP(i.cantidad*i.precio)+'</td></tr>'; }).join('')
+      +'<tr><td colspan="3"><b>TOTAL</b></td><td><b>'+fmtCLP(p.total)+'</b></td></tr></table>'
+      +'<p>Validez 15 días.</p><script>window.print()</script></body></html>';
+    w.document.write(html); w.document.close();
+  }
+  function gmailPres(p){
+    var c=cust.find(function(x){return x.id===p.customer_id;})||{};
+    window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+(c.email||'')+'&su='+encodeURIComponent('Presupuesto N° '+p.id)+'&body='+encodeURIComponent('Estimado '+(c.nombre||'')+',\nAdjunto presupuesto N° '+p.id+' por '+fmtCLP(p.total)+'.\n(Descargue el PDF y adjúntelo a este correo).\n\nSaludos.'),'_blank');
+  }
   return (
     <div>
       <div style={S.card}>
