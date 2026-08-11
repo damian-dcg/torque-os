@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
 import { T, S, estColor, fmtCLP, fmtFecha } from '../ui';
 import Mapa from './Mapa';
+import HistorialActivo from './HistorialActivo';
+import DiagnosticoPresupuesto from './DiagnosticoPresupuesto';
 import { geocode } from './geo';
 
 export default function FichaOT(props){
