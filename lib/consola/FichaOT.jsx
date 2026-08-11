@@ -30,6 +30,11 @@ export default function FichaOT(props){
       setSats((r[3].data||[]).filter(function(x){ return x.activo; }));
     })();
   },[ot.id]);
+  function nombreAsignado(){
+    if(ot.asignado_user_id){ var u=users.find(function(x){ return x.id===ot.asignado_user_id; }); return u?u.nombre:'Téc #'+ot.asignado_user_id; }
+    if(ot.asignado_company_id){ var s=sats.find(function(x){ return x.id===ot.asignado_company_id; }); return s?s.nombre:'SSTT #'+ot.asignado_company_id; }
+    return null;
+  }
   async function cambiar(estado){
     var d=await supabase.rpc('cambiar_estado_ot',{p_ot_id:ot.id,p_estado:estado});
     if(d.error) avisar('⛗ '+d.error.message,T.danger);
@@ -41,7 +46,8 @@ export default function FichaOT(props){
     if(asig.tipo==='tec') patch.asignado_user_id=Number(asig.id); else patch.asignado_company_id=Number(asig.id);
     if(fecha) patch.fecha_programada=fecha;
     var e=await supabase.from('work_orders').update(patch).eq('id',ot.id);
-    if(e.error) avisar('⛗ '+e.error.message,T.danger); else { avisar('✅ OT asignada',T.ok); onChanged(); onClose(); }
+    if(e.error) avisar('⛗ '+e.error.message,T.danger);
+    else { avisar('✅ OT asignada a '+(asig.tipo==='tec'?'técnico':'SSTT'),T.ok); onChanged(); onClose(); }
   }
   async function programar(){
     if(!fecha){ avisar('⛗ Elige fecha',T.danger); return; }
@@ -56,9 +62,19 @@ export default function FichaOT(props){
     setMapOpen(true);
   }
   function gmail(){
-    window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+(c.email||'')+'&su='+encodeURIComponent('OT-'+ot.ot_number+' · '+(tenantNombre()))+'&body='+encodeURIComponent('Hola '+(c.nombre||'')+',\nSu orden OT-'+ot.ot_number+' ('+ot.tipo+') se encuentra en estado: '+ot.estado+'.\nLe contactaremos a la brevedad.'),'_blank');
+    window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+(c.email||'')+'&su='+encodeURIComponent('OT-'+ot.ot_number+' · Bianchi Servicio Técnico')+'&body='+encodeURIComponent('Hola '+(c.nombre||'')+',\nSu orden OT-'+ot.ot_number+' ('+ot.tipo+') se encuentra en estado: '+ot.estado+'.\nLe contactaremos a la brevedad.'),'_blank');
   }
-  function tenantNombre(){ return 'Bianchi Servicio Técnico'; }
+  function pdf(){
+    var w=window.open('','_blank');
+    var html='<html><head><title>OT-'+ot.ot_number+'</title><style>body{font-family:Arial;padding:24px;color:#111}table{width:100%;border-collapse:collapse;margin:10px 0}td,th{border:1px solid #ccc;padding:6px;font-size:12px;text-align:left}</style></head><body>'
+      +'<h2>OT-'+ot.ot_number+' · '+ot.tipo+' · '+ot.estado+'</h2>'
+      +'<table><tr><th>Cliente</th><td>'+(c.nombre||'')+'</td><th>RUT</th><td>'+(c.rut||'')+'</td></tr>'
+      +'<tr><th>Teléfono</th><td>'+(c.telefono||'')+'</td><th>Dirección</th><td>'+(ot.direccion||c.direccion||'')+'</td></tr>'
+      +'<tr><th>Producto</th><td>'+(dp.producto||'')+' '+(dp.modelo||'')+'</td><th>Boleta</th><td>'+(dp.boleta||'')+'</td></tr>'
+      +'<tr><th>Asignado a</th><td>'+(nombreAsignado()||'—')+'</td><th>Fecha</th><td>'+(ot.fecha_programada||'—')+'</td></tr></table>'
+      +'<p>'+ (ot.descripcion||'') +'</p><script>window.print()</script></body></html>';
+    w.document.write(html); w.document.close();
+  }
   var abierta=['Ingresada','Asignada','Aceptada','En Ruta','Llegada','Trabajando','Esperando Repuesto'].indexOf(ot.estado)>=0;
   return (
     <div style={S.modal} onClick={onClose}>
@@ -68,6 +84,7 @@ export default function FichaOT(props){
           <span style={S.pill(estColor(ot.estado))}>{ot.estado}</span>
         </div>
         <p style={{...S.sub,margin:'6px 0'}}>{c.nombre||'—'} · {ot.tipo} · {fmtFecha(ot.created_at)} · canal {ot.canal}</p>
+        <p style={{...S.sub,margin:'0 0 6px'}}>Asignada a: <b>{nombreAsignado()||'— sin asignar —'}</b> · Fecha programada: <b>{ot.fecha_programada||'—'}</b></p>
 
         <div style={{background:T.surface2,borderRadius:10,padding:12,marginBottom:12}}>
           <h3 style={{...S.h2,margin:'0 0 6px'}}>Cliente</h3>
@@ -121,7 +138,8 @@ export default function FichaOT(props){
         </div>
 
         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-          <button style={{...S.btnO(T.info),width:'auto',marginBottom:0}} onClick={gmail}>✉ Gmail</button>
+          <button style={{...S.btnO(T.info),width:'auto',marginBottom:0}} onClick={pdf}>📄 PDF</button>
+          <button style={{...S.btnO(T.warn),width:'auto',marginBottom:0}} onClick={gmail}>✉ Gmail</button>
           <button style={{...S.btn(T.muted),flex:1,marginBottom:0}} onClick={onClose}>Cerrar</button>
         </div>
       </div>
