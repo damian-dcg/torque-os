@@ -133,6 +133,7 @@ export default function ModNuevaOT({avisar,onOk}){
           <div style={{display:'flex',gap:8}}>{pasoBtn(3,true)}<button style={{...S.btn(T.info),width:'auto',marginBottom:0}} onClick={()=>setPaso(5)}>Siguiente →</button></div>
         </div>)}
 
+            {mapOpen? <div style={S.modal} onClick={function(){ setMapOpen(false); }}><div style={{...S.modalCard,maxWidth:700}} onClick={function(e){ e.stopPropagation(); }}><h3 style={S.h2}>Ubicación</h3><Mapa markers={mapMk}/><button style={S.btn(T.muted)} onClick={function(){ setMapOpen(false); }}>Cerrar</button></div></div> : null}
       {paso===5&&(
         <div>
           <p style={{color:T.text,fontSize:15}}>Cliente: <b>{cliente?cliente.nombre:''}</b></p>
