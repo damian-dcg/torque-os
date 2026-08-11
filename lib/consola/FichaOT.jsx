@@ -121,7 +121,9 @@ export default function FichaOT(props){
                 <optgroup label="Técnicos internos">{users.map(function(u){ return <option key={'t'+u.id} value={'tec:'+u.id}>{u.nombre}</option>; })}</optgroup>
                 <optgroup label="SSTT autorizados">{sats.map(function(s){ return <option key={'s'+s.id} value={'sat:'+s.id}>{s.nombre}</option>; })}</optgroup>
               </select>
-              <input style={{...S.input,flex:1,marginBottom:0}} type="date" value={fecha} onChange={function(e){ setFecha(e.target.value); }}/>
+               <input style={{...S.input,flex:1,marginBottom:0}} type="date" value={fecha} onChange={function(e){ setFecha(e.target.value); }}/>
+              <select style={{...S.input,flex:1,marginBottom:0}} value={modalidad} onChange={function(e){ setModalidad(e.target.value); }}><option value="taller">En taller</option><option value="domicilio">A domicilio</option></select>
+              <input style={{...S.input,flex:1,marginBottom:0}} type="number" placeholder="Traslado $" value={traslado} onChange={function(e){ setTraslado(e.target.value); }}/>
               <button style={{...S.btn(T.brand),width:'auto',marginBottom:0}} onClick={asignar}>Asignar</button>
             </div>
             <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
