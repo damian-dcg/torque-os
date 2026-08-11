@@ -75,6 +75,7 @@ export default function ModTecnicos(props){
         onAdd={function(f){ supabase.from('users').insert([{nombre:f.nombre,email:f.email,rol:f.rol||'tecnico_sat',especialidad:f.especialidad,telefono:f.telefono}]).then(function(e){ if(e.error)avisar('⛗ '+e.error.message,T.danger); else { avisar('✅ Técnico registrado. Crea su acceso en Supabase→Authentication y vincula el UID.',T.ok); cargar(); } }); }}
         addLabel="+ Técnico"/>
       <div style={S.card}>
+                <ImportExport nombre="SSTT" headers={['nombre','rut','contacto','telefono','email','comuna','address','especialidad','trayecto','cargo_fijo_mensual']} onRows={async function(rs){ var n=0; for(var i=0;i<rs.length;i++){ var r=rs[i]; if(!r.nombre) continue; var e=await supabase.from('companies').insert([{nombre:r.nombre,rut:r.rut||null,tipo:'sat',contacto:r.contacto||null,telefono:r.telefono||null,email:r.email||null,comuna:r.comuna||null,address:r.address||null,especialidad:r.especialidad||'ambos',trayecto:r.trayecto||'CONSULTAR',cargo_fijo_mensual:Number(r.cargo_fijo_mensual)||0,estado:'autorizado',activo:true}]); if(!e.error) n++; } cargar(); return '✅ '+n+' SSTT cargados'; }}/>
         <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',marginBottom:12}}>
           <h2 style={{...S.h2,margin:0,flex:1}}>Servicios Técnicos Autorizados (SSTT)</h2>
           <input style={{...S.input,width:220,marginBottom:0}} placeholder="Buscar SSTT…" value={q} onChange={function(e){ setQ(e.target.value); }}/>
