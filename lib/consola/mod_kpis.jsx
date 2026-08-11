@@ -2,27 +2,38 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
 import { T, S, fmtCLP } from '../ui';
-
 export default function ModKpis(){
-  const [ots,setOts]=useState([]);
-  useEffect(function(){ cargar(); },[]);
-  async function cargar(){
-    const {data}=await supabase.from('work_orders').select('*').limit(2000);
-    setOts(data||[]);
-  }
+  var s1=useState([]),ots=s1[0],setOts=s1[1];
+  var s2=useState({}),hs=s2[0],setHs=s2[1];
+  useEffect(function(){
+    (async function(){
+      var r=await Promise.all([supabase.from('work_orders').select('*').limit(2000),supabase.from('settings').select('valor').eq('clave','horas_estandar').single()]);
+      setOts(r[0].data||[]);
+      try{ setHs(r[1].data?r[1].data.valor:{}); }catch(e){}
+    })();
+  },[]);
   function K(o){ return o.kpi||{}; }
-  const cerr=ots.filter(o=>o.estado==='Cerrada');
-  const ftf=cerr.length?Math.round(cerr.filter(o=>String(K(o).ftf).toUpperCase()==='SI').length/cerr.length*100):0;
-  const alta=cerr.filter(o=>K(o).nivel==='ALTA').length;
-  const media=cerr.filter(o=>K(o).nivel==='MEDIA').length;
-  const baja=cerr.filter(o=>K(o).nivel==='BAJA').length;
-  const falla=ots.filter(o=>String(K(o).reincidencia).toUpperCase()==='FALLA').length;
-  const margen=cerr.reduce((s,o)=>s+(K(o).margen||0),0);
-  const venta=cerr.reduce((s,o)=>s+(K(o).venta_total||0),0);
-  const dias=cerr.length?(cerr.reduce((s,o)=>s+(K(o).dias||0),0)/cerr.length).toFixed(1):0;
-  const horas=Math.round(cerr.reduce((s,o)=>s+(K(o).horas||0),0));
-  const porEq={}; ots.forEach(o=>{ const k=K(o).tipo_equipo||'—'; porEq[k]=(porEq[k]||0)+1; });
-  const porTec={}; ots.forEach(o=>{ const k=o.tecnico_nombre||'—'; porTec[k]=(porTec[k]||0)+1; });
+  var cerr=ots.filter(function(o){ return o.estado==='Cerrada'; });
+  var ftf=cerr.length?Math.round(cerr.filter(function(o){ return String(K(o).ftf).toUpperCase()==='SI'; }).length/cerr.length*100):0;
+  var alta=cerr.filter(function(o){ return K(o).nivel==='ALTA'; }).length;
+  var media=cerr.filter(function(o){ return K(o).nivel==='MEDIA'; }).length;
+  var baja=cerr.filter(function(o){ return K(o).nivel==='BAJA'; }).length;
+  var falla=ots.filter(function(o){ return String(K(o).reincidencia).toUpperCase()==='FALLA'; }).length;
+  var margen=cerr.reduce(function(s,o){ return s+(K(o).margen||0); },0);
+  var venta=cerr.reduce(function(s,o){ return s+(K(o).venta_total||0); },0);
+  var dias=cerr.length?(cerr.reduce(function(s,o){ return s+(K(o).dias||0); },0)/cerr.length).toFixed(1):0;
+  // Productividad: horas vendidas (estándar) vs trabajadas, por técnico
+  var porTec={};
+  ots.forEach(function(o){
+    var t=o.tecnico_nombre||'—'; if(t==='—')return;
+    var k=K(o);
+    var sv=String(k.tipo_servicio||'').toUpperCase();
+    var eq=String(k.tipo_equipo||'').toUpperCase();
+    var vend=(hs[sv]&&hs[sv][eq]!=null)?hs[sv][eq]*(o.cantidad_unidades||1):0;
+    var trab=k.horas||0;
+    if(!porTec[t]) porTec[t]={u:0,v:0,c:0};
+    porTec[t].u+=trab; porTec[t].v+=vend; porTec[t].c++;
+  });
   return (
     <div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:12,marginBottom:14}}>
@@ -31,7 +42,6 @@ export default function ModKpis(){
         <div style={S.card}><div style={S.sub}>First-Time-Fix</div><div style={{fontSize:22,fontWeight:800,color:T.teal}}>{ftf}%</div></div>
         <div style={S.card}><div style={S.sub}>Reincidencia</div><div style={{fontSize:22,fontWeight:800,color:T.danger}}>{falla}</div></div>
         <div style={S.card}><div style={S.sub}>Días reparación</div><div style={{fontSize:22,fontWeight:800}}>{dias}</div></div>
-        <div style={S.card}><div style={S.sub}>Horas hombre</div><div style={{fontSize:22,fontWeight:800}}>{horas}</div></div>
         <div style={S.card}><div style={S.sub}>Venta total</div><div style={{fontSize:20,fontWeight:800,color:T.ok}}>{fmtCLP(venta)}</div></div>
         <div style={S.card}><div style={S.sub}>Margen bruto</div><div style={{fontSize:20,fontWeight:800,color:margen<0?T.danger:T.ok}}>{fmtCLP(margen)}</div></div>
       </div>
@@ -40,10 +50,12 @@ export default function ModKpis(){
           <p style={{color:T.ok,fontWeight:700}}>ALTA (10): {alta}</p>
           <p style={{color:T.warn,fontWeight:700}}>MEDIA (7): {media}</p>
           <p style={{color:T.danger,fontWeight:700}}>BAJA (5): {baja}</p></div>
-        <div style={S.card}><h2 style={S.h2}>Volumen por tipo de equipo</h2>
-          {Object.keys(porEq).map(k=><p key={k} style={{fontSize:14,margin:'4px 0'}}><b style={{color:T.brand}}>{porEq[k]}</b> · {k}</p>)}</div>
-        <div style={S.card}><h2 style={S.h2}>OTs por técnico</h2>
-          {Object.keys(porTec).slice(0,8).map(k=><p key={k} style={{fontSize:14,margin:'4px 0'}}><b style={{color:T.info}}>{porTec[k]}</b> · {k}</p>)}</div>
+        <div style={S.card}><h2 style={S.h2}>Productividad / Eficiencia por técnico</h2>
+          <table style={{width:'100%',borderCollapse:'collapse'}}>
+            <thead><tr><th style={S.th}>Técnico</th><th style={S.th}>OTs</th><th style={S.th}>Hrs vendidas</th><th style={S.th}>Hrs trabajadas</th><th style={S.th}>Eficiencia</th></tr></thead>
+            <tbody>{Object.keys(porTec).map(function(t){ var p=porTec[t]; var eff=p.u>0?Math.round(p.v/p.u*100):0;
+              return <tr key={t}><td style={S.td}>{t}</td><td style={S.td}>{p.c}</td><td style={S.td}>{p.v.toFixed(1)}</td><td style={S.td}>{p.u.toFixed(1)}</td><td style={{...S.td,fontWeight:800,color:eff>=100?T.ok:eff>=70?T.warn:T.danger}}>{eff}%</td></tr>; })}</tbody>
+          </table></div>
       </div>
     </div>);
 }
