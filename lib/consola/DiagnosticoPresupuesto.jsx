@@ -35,6 +35,8 @@ export default function DiagnosticoPresupuesto(props){
       <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
         <button style={{...S.btnO(T.info),width:'auto',marginBottom:0}} onClick={function(){ setItems(items.concat([{concepto:'',cantidad:1,precio:0}])); }}>+ Ítem</button>
         <b style={{color:T.ok}}>Total {fmtCLP(total)}</b>
+        <input style={{...S.input,width:160,marginBottom:0}} type="date" value={vig} onChange={function(e){ setVig(e.target.value); }} title="Vigencia del presupuesto"/>
+        {pres&&pres.vigencia&&new Date(pres.vigencia)<new Date()&&pres.estado!=='aceptado'? <span style={S.pill(T.danger)}>EXPIRADO</span> : null}
         <button style={{...S.btn(T.brand),width:'auto',marginBottom:0}} onClick={guardarPres}>Guardar</button>
         <button style={{...S.btnO(T.warn),width:'auto',marginBottom:0}} onClick={enviar}>📤 Enviar aprobación</button>
       </div>
