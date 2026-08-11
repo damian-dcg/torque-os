@@ -35,7 +35,7 @@ export default function ModImportar({avisar}){
     }));
     let ok=0; for(let i=0;i<ots.length;i+=200){ const {error}=await supabase.from('work_orders').upsert(ots.slice(i,i+200),{onConflict:'ext_id'}); if(!error) ok+=Math.min(200,ots.length-i); setLog(`OTs ${Math.min(i+200,ots.length)}/${ots.length}…`); }
     setLog(`✅ Historial cargado: ${ok} OTs. Clientes: ${Object.keys(cmap).length}.`);
-    avisar('✅ Historial KPIs importado',T.ok); setBusy(false);
+    avisar('✅ Historial KPIs importado',T.ok); emit(); setBusy(false);
   }
   return (
     <div style={S.card}>
