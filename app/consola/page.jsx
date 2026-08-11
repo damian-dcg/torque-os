@@ -79,8 +79,8 @@ export default function Consola(){
         <button onClick={async function(){ await supabase.auth.signOut(); router.replace('/'); }} style={{...S.btnO(T.danger),width:'auto',marginBottom:0,padding:'8px 14px'}}>Salir</button>
       </header>
       <div style={{display:'flex',alignItems:'flex-start'}}>
-        <aside style={{width:240,flexShrink:0,padding:'16px 12px',borderRight:'1px solid '+T.border,minHeight:'calc(100vh - 60px)',background:T.surface2}}>
-          <div style={{...S.sub,fontWeight:800,marginBottom:10}}>{cat}</div>
+               <aside style={{width:240,flexShrink:0,padding:'16px 12px',borderRight:'1px solid #22272D',minHeight:'calc(100vh - 60px)',background:'#2B3138'}}>
+          <div style={{...S.sub,color:'#9AA6B2',fontWeight:800,marginBottom:10}}>{cat}</div>
           {CATS[cat].map(function(it){
             return <button key={it[0]} onClick={function(){ setTab(it[0]); }} style={{display:'block',width:'100%',textAlign:'left',padding:'10px 12px',borderRadius:8,border:0,marginBottom:4,background:tab===it[0]?brand:'transparent',color:tab===it[0]?'#fff':T.text,fontWeight:tab===it[0]?700:500,fontSize:13,cursor:'pointer'}}>{it[1]}</button>;
           })}
