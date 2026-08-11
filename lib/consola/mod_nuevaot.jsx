@@ -15,6 +15,8 @@ export default function ModNuevaOT({avisar,onOk}){
   const [f,setF]=useState({customer_id:'',asset_id:'',tipo:'servicio',prioridad:'media',direccion:'',descripcion:'',fecha:'',asig_tipo:'',asig_id:''});
   const [nc,setNc]=useState({nombre:'',rut:'',telefono:''});
   const [na,setNa]=useState({serial:'',model:'',family_id:'',store:'',warranty_until:''});
+    const [mapOpen,setMapOpen]=useState(false); const [mapMk,setMapMk]=useState([]);
+  async function verMapa(){ var dir=f.direccion||(cliente?cliente.direccion:''); if(!dir){ avisar('⛗ Sin dirección',T.danger); return; } var g=await geocode(dir); setMapMk(g?[{lat:g.lat,lng:g.lng,popup:dir}]:[]); setMapOpen(true); }
 
   async function cargar(){ const [c,a,fo,s,u,cv,o,r,st]=await Promise.all([
     supabase.from('customers').select('*').order('nombre').limit(400),
