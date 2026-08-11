@@ -18,6 +18,8 @@ export default function FichaOT(props){
   var s4=useState([]),sats=s4[0],setSats=s4[1];
   var s5=useState({tipo:'',id:''}),asig=s5[0],setAsig=s5[1];
   var s6=useState(ot.fecha_programada||''),fecha=s6[0],setFecha=s6[1];
+  var s9=useState(ot.modalidad||'taller'),modalidad=s9[0],setModalidad=s9[1];
+  var s10=useState(ot.costo_traslado||0),traslado=s10[0],setTraslado=s10[1];
   var s7=useState(false),mapOpen=s7[0],setMapOpen=s7[1];
   var s8=useState([]),mapMk=s8[0],setMapMk=s8[1];
   useEffect(function(){
