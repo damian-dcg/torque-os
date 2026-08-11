@@ -113,6 +113,7 @@ export default function ModNuevaOT({avisar,onOk}){
           </div>
           <label style={S.label}>Dirección (si difiere del cliente)</label>
           <input style={S.input} value={f.direccion} onChange={e=>setF({...f,direccion:e.target.value})} placeholder={cliente?cliente.direccion||'':''}/>
+          <button type="button" style={{...S.btnO(T.info),width:'auto',marginBottom:10}} onClick={verMapa}>🗺 Ver ubicación en mapa</button>
           <label style={S.label}>Descripción / síntoma</label>
           <textarea style={{...S.input,minHeight:80}} value={f.descripcion} onChange={e=>setF({...f,descripcion:e.target.value})}/>
           <p style={{...S.sub,margin:'0 0 10px'}}>Checklist automático: <b style={{color:T.teal}}>{defaultByType(f.tipo)}</b></p>
