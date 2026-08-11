@@ -46,7 +46,7 @@ export default function FichaOT(props){
   }
   async function asignar(){
     if(!asig.id){ avisar('⛗ Elige técnico o SSTT',T.danger); return; }
-    var patch={estado:'Asignada'};
+    var patch={estado:'Asignada',modalidad:modalidad,costo_traslado:Number(traslado)||0};
     if(asig.tipo==='tec') patch.asignado_user_id=Number(asig.id); else patch.asignado_company_id=Number(asig.id);
     if(fecha) patch.fecha_programada=fecha;
     var e=await supabase.from('work_orders').update(patch).eq('id',ot.id);
