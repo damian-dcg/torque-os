@@ -69,7 +69,7 @@ export default function Consola(){
     setWrules(r[5]);
     setTrates(r[6]);
     setSla(r[7]);
-    setBuzCount((r[8]||[]).filter(function(e){ return ['alerta_repuesto','motivo','pausa_repuesto'].indexOf(e.evento)>=0; }).length);
+    setBuzCount((r[8]||[]).filter(function(e){ return ['alerta_repuesto','motivo','pausa_repuesto','alerta_stock'].indexOf(e.evento)>=0; }).length);
   }
 
   function exportExcel(){
