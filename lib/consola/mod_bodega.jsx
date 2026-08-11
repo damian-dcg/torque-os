@@ -19,6 +19,11 @@ export default function ModBodega({avisar}){
     if(m.tipo==='salida'){
       if((part.en_stock||0)<qty){ avisar('⛔ Stock insuficiente: hay '+(part.en_stock||0),T.danger); return; }
       await supabase.from('parts').update({en_stock:(part.en_stock||0)-qty}).eq('codigo',m.part_codigo);
+            var nuevoStock=(part.en_stock||0)-qty;
+      if(nuevoStock<=(part.stock_min||0)){
+        await supabase.from('ot_events').insert([{ot_id:m.ot_id?Number(m.ot_id):null,evento:'alerta_stock',detalle:{parte:m.part_codigo,stock:nuevoStock}}]);
+        await supabase.from('notifications').insert([{rol_destino:'agente',tipo:'alerta_stock',titulo:'🚨 Quiebre de stock: '+m.part_codigo+' (queda '+nuevoStock+')'}]);
+      }
     } else {
       await supabase.from('parts').update({en_stock:(part.en_stock||0)+qty}).eq('codigo',m.part_codigo);
     }
