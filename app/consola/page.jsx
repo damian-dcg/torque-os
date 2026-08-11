@@ -188,6 +188,8 @@ export default function Consola(){
         {tab==='conectores'&&<ModConectores avisar={avisar}/>}
         {tab==='parametros'&&<ModParametros avisar={avisar}/>}
         {tab==='productos'&&<ModProductos avisar={avisar}/>}
+        {tab==='importar'&&<ModImportar avisar={avisar}/>}
+        {tab==='bonos'&&<ModBonos avisar={avisar}/>}
         {tab==='config'&&<ModConfig tenant={tenant} avisar={avisar} onTenant={setTenant}/>}
       </div>
 
