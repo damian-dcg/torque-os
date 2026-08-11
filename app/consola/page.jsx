@@ -72,7 +72,7 @@ export default function Consola(){
         <span style={{...S.sub,color:'#AEB9C4'}}>{tenant?tenant.nombre:''}</span>
         <nav style={{display:'flex',gap:6,marginLeft:'auto',flexWrap:'wrap'}}>
           {Object.keys(CATS).map(function(c){
-            return <button key={c} onClick={function(){ setCat(c); setTab(CATS[c][0][0]); }} style={{padding:'9px 16px',borderRadius:999,border:cat===c?'0':'1px solid '+T.border,background:cat===c?brand:'transparent',color:cat===c?'#fff':T.text,fontWeight:700,fontSize:13,cursor:'pointer'}}>{c}</button>;
+            return <button key={c} onClick={function(){ setCat(c); setTab(CATS[c][0][0]); }} style={{padding:'9px 16px',borderRadius:999,border:cat===c?'0':'1px solid #3A4149',background:cat===c?brand:'transparent',color:cat===c?'#fff':'#E6EAEE',fontWeight:700,fontSize:13,cursor:'pointer'}}>{c}</button>;
           })}
         </nav>
         <a href="/tecnico" style={{...S.btnO(T.info),width:'auto',marginBottom:0,padding:'8px 14px',textDecoration:'none'}}>Vista Técnico</a>
