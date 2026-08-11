@@ -66,4 +66,106 @@ export default function Consola(){
     var head=['ID OT','OT','Fecha Ingreso','Cliente','RUT','Tipo Equipo','Tipo Servicio','Técnico','Estado','Fecha Promesa','Cantidad','Horas','Venta Total','Costo Total','Margen','%Margen','FTF','Nota','Nivel','Detalle','Modelo'];
     var rows=ots.map(function(o){
       var c=cust[o.customer_id]||{}; var k=o.kpi||{};
-      return [o.ext_id||('OT-'+o.ot_number),o.ot_number,o.created_at||'',c.nombre||'',c.r
+      return [o.ext_id||('OT-'+o.ot_number),o.ot_number,o.created_at||'',c.nombre||'',c.rut||'',k.tipo_equipo||'',o.tipo||'',o.tecnico_nombre||'',o.estado||'',o.fecha_promesa||'',o.cantidad_unidades||1,k.horas||0,k.venta_total||0,k.costo_total||0,k.margen||0,k.pct_margen||'',k.ftf||'',k.nota||'',k.nivel||'',String(o.descripcion||'').replace(/[;\n]/g,','),String(o.modelo_limpio||'').replace(/[;\n]/g,',')].join(';');
+    });
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob(['\uFEFF'+head.join(';')+'\n'+rows.join('\n')],{type:'text/csv'}));
+    a.download='TORQUE-OS_base_completa.csv'; a.click();
+  }
+  useEffect(function(){
+    supabase.auth.getSession().then(async function(res){
+      if(!res.data.session){ router.replace('/'); return; }
+      const m=await supabase.from('users').select('*').eq('auth_uid',res.data.session.user.id).single();
+      setMe(m.data);
+      const t=await supabase.from('tenants').select('*').eq('activo',true).limit(1);
+      setTenant((t.data||[])[0]||null);
+      cargar();
+    });
+    return onChange(cargar);
+  },[]);
+
+  const operativas=ots.filter(function(o){ return !esPendiente(o); });
+  const visibles=operativas.filter(function(o){
+    const t=q.toLowerCase();
+    const okQ=!t||String(o.ot_number).indexOf(t)>=0||String(o.ext_id||'').toLowerCase().indexOf(t)>=0||String((cust[o.customer_id]||{}).nombre||'').toLowerCase().indexOf(t)>=0;
+    return okQ&&(!fEst||o.estado===fEst);
+  });
+
+  return (
+    <main style={S.main}>
+      <style>{'@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}.blink{animation:blink 1s infinite}'}</style>
+      {toast? <div style={S.toast(toast.c)}>{toast.t}</div> : null}
+      <header style={{position:'sticky',top:0,zIndex:30,background:'#0E1113',borderBottom:'1px solid #0E1113',padding:'10px 16px',display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
+        <h1 style={{...S.h1,color:'#FFFFFF'}}>TORQUE<span style={{color:brand}}>·OS</span></h1>
+        <span style={{...S.sub,color:'#AEB9C4'}}>{tenant?tenant.nombre:''}</span>
+        <nav style={{display:'flex',gap:6,marginLeft:'auto',flexWrap:'wrap'}}>
+          {Object.keys(CATS).map(function(c){
+            return <button key={c} onClick={function(){ setCat(c); setTab(CATS[c][0][0]); }} style={{padding:'9px 16px',borderRadius:999,border:cat===c?'0':'1px solid #3A4149',background:cat===c?brand:'transparent',color:cat===c?'#fff':'#E6EAEE',fontWeight:700,fontSize:13,cursor:'pointer'}}>{c}</button>;
+          })}
+        </nav>
+        <a href="/tecnico" style={{...S.btnO(T.info),width:'auto',marginBottom:0,padding:'8px 14px',textDecoration:'none'}}>Vista Técnico</a>
+        <button onClick={async function(){ await supabase.auth.signOut(); router.replace('/'); }} style={{...S.btnO(T.danger),width:'auto',marginBottom:0,padding:'8px 14px'}}>Salir</button>
+      </header>
+      <div style={{display:'flex',alignItems:'flex-start'}}>
+        <aside style={{width:240,flexShrink:0,padding:'16px 12px',borderRight:'1px solid #22272D',minHeight:'calc(100vh - 60px)',background:'#2B3138'}}>
+          <div style={{...S.sub,color:'#9AA6B2',fontWeight:800,marginBottom:10}}>{cat}</div>
+          {CATS[cat].map(function(it){
+            return <button key={it[0]} onClick={function(){ setTab(it[0]); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',textAlign:'left',padding:'10px 12px',borderRadius:8,border:0,marginBottom:4,background:tab===it[0]?brand:'transparent',color:tab===it[0]?'#fff':'#DDE3E9',fontWeight:tab===it[0]?700:500,fontSize:13,cursor:'pointer'}}>
+              <span>{it[1]}</span>
+              {it[0]==='buzon'&&buzCount>0? <span className="blink" style={{background:'#DC2626',color:'#fff',borderRadius:999,padding:'2px 8px',fontSize:11,fontWeight:800}}>{buzCount}</span> : null}
+            </button>;
+          })}
+        </aside>
+        <div style={{flex:1,minWidth:0}}><div style={S.wrap}>
+          {tab==='kpis'? <ModKpis/> : null}
+          {tab==='maestros'? <div>
+            <TablaPro titulo="Familias de producto" rows={fams} campos={[['code','Código'],['name','Nombre']]} onEdit={function(r,k,v){ save('product_families',{[k]:v},r.id); }} onAdd={function(f){ save('product_families',f); }} onDel={function(r){ remove('product_families',r.id); }}/>
+            <TablaPro titulo="Tipos de servicio" rows={servs} campos={[['code','Código'],['nombre','Nombre'],['base_price','Precio base','num']]} onEdit={function(r,k,v){ save('service_types',{[k]:v},r.id); }} onAdd={function(f){ save('service_types',f); }} onDel={function(r){ remove('service_types',r.id); }}/>
+            <TablaPro titulo="Tipos de mantención" rows={mants} campos={[['nombre','Nombre'],['descripcion','Descripción']]} onEdit={function(r,k,v){ save('mant_types',{[k]:v},r.id); }} onAdd={function(f){ save('mant_types',f); }} onDel={function(r){ remove('mant_types',r.id); }}/>
+            <TablaPro titulo="Garantías por familia (meses)" rows={wrules} campos={[['family_id','ID Familia','num'],['meses','Meses','num'],['condiciones','Condiciones']]} onEdit={function(r,k,v){ save('warranty_rules',{[k]:v},r.id); }} onAdd={function(f){ save('warranty_rules',f); }} onDel={function(r){ remove('warranty_rules',r.id); }}/>
+            <TablaPro titulo="Técnicos (costos)" rows={trates} campos={[['technician','Técnico'],['costo_sueldo_mensual','Sueldo','num'],['horas_mes','Horas/mes','num'],['costo_x_hora','Costo×h','num'],['venta_x_hora','Venta×h','num']]} onEdit={function(r,k,v){ save('tech_rates',{[k]:v},r.id); }} onAdd={function(f){ save('tech_rates',f); }} onDel={function(r){ remove('tech_rates',r.id); }}/>
+            <TablaPro titulo="SLA (días)" rows={sla} campos={[['tipo_servicio','Servicio'],['tipo_equipo','Equipo'],['dias','Días','num']]} onEdit={function(r,k,v){ save('sla_matrix',{[k]:v},r.id); }} onAdd={function(f){ save('sla_matrix',f); }} onDel={function(r){ remove('sla_matrix',r.id); }}/>
+          </div> : null}
+          {tab==='ots'? <div>
+            <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
+              <input style={{...S.input,flex:2,minWidth:200,marginBottom:0}} placeholder="Buscar OT o cliente…" value={q} onChange={function(e){ setQ(e.target.value); }}/>
+              <select style={{...S.input,flex:1,minWidth:160,marginBottom:0}} value={fEst} onChange={function(e){ setFEst(e.target.value); }}>
+                <option value="">Todos los estados</option>
+                {['Asignada','En Ruta','Llegada','Trabajando','Esperando Repuesto','Revisión QA','Cerrada','Rechazada'].map(function(s){ return <option key={s}>{s}</option>; })}
+              </select>
+              <button style={{...S.btnO(T.ok),width:'auto',marginBottom:0}} onClick={exportExcel}>⬇ Excel completo</button>
+            </div>
+            <div style={S.card}><table style={{width:'100%',borderCollapse:'collapse'}}>
+              <thead><tr><th style={S.th}>OT</th><th style={S.th}>Cliente</th><th style={S.th}>Tipo</th><th style={S.th}>Estado</th><th style={S.th}>Ingreso</th></tr></thead>
+              <tbody>{visibles.slice(0,150).map(function(o){
+                return <tr key={o.id} onClick={function(){ setSel(o); }} style={{cursor:'pointer'}}>
+                  <td style={{...S.td,color:brand,fontWeight:700}}>{o.ext_id||('OT-'+o.ot_number)}</td>
+                  <td style={S.td}>{(cust[o.customer_id]||{}).nombre||'—'}</td>
+                  <td style={S.td}>{o.tipo}</td>
+                  <td style={S.td}><span style={S.pill(estColor(o.estado))}>{o.estado}</span></td>
+                  <td style={S.td}>{fmtFecha(o.created_at)}</td>
+                </tr>;
+              })}</tbody>
+            </table>
+            {visibles.length===0? <p style={{...S.sub,padding:12}}>Sin OTs operativas. Las solicitudes nuevas sin asignar están en el Buzón.</p> : null}</div>
+          </div> : null}
+          {tab==='buzon'? <Buzon ots={ots} cust={cust} onOpen={function(o){ setSel(o); }} onChanged={cargar}/> : null}
+          {tab==='agenda'? <ModAgenda avisar={avisar}/> : null}
+          {tab==='nueva'? <ModNuevaOT avisar={avisar} onOk={cargar}/> : null}
+          {tab==='bodega'? <ModBodega avisar={avisar}/> : null}
+          {tab==='productos'? <ModProductos avisar={avisar}/> : null}
+          {tab==='checklists'? <ModChecklists avisar={avisar}/> : null}
+          {tab==='clientes'? <ModClientes avisar={avisar}/> : null}
+          {tab==='activos'? <ModActivos avisar={avisar}/> : null}
+          {tab==='tecnicos'? <ModTecnicos avisar={avisar}/> : null}
+          {tab==='presupuestos'? <ModPresupuestos avisar={avisar} tenant={tenant}/> : null}
+          {tab==='red'? <ModRed avisar={avisar}/> : null}
+          {tab==='bonos'? <ModBonos avisar={avisar}/> : null}
+          {tab==='importar'? <ModImportar avisar={avisar} onOk={cargar}/> : null}
+          {tab==='conectores'? <ModConectores avisar={avisar}/> : null}
+          {tab==='config'? <ModConfig tenant={tenant} avisar={avisar} onTenant={setTenant}/> : null}
+        </div></div>
+      </div>
+      {sel? <FichaOT ot={sel} cust={cust} avisar={avisar} onClose={function(){ setSel(null); }} onChanged={cargar}/> : null}
+    </main>);
+}
