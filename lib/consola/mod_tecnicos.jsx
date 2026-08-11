@@ -4,6 +4,7 @@ import { supabase } from '../supabase';
 import { T, S, fmtCLP } from '../ui';
 import TablaPro from './TablaPro';
 import Mapa from './Mapa';
+import ImportExport from './ImportExport';
 import { geocode } from './geo';
 var EQUIPOS=['BICICLETA','BICICLETA ELECTRICA','MAQUINA','SCOOTER ELECTRICO','ACCESORIO'];
 var VACIO={nombre:'',rut:'',contacto:'',telefono:'',email:'',region_id:'',comuna:'',address:'',especialidad:'ambos',trayecto:'CONSULTAR',cargo_fijo_mensual:0,cuenta_bancaria:''};
