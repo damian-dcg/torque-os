@@ -37,7 +37,7 @@ export default function Consola(){
   const [ots,setOts]=useState([]); const [cust,setCust]=useState({});
   const [fams,setFams]=useState([]); const [servs,setServs]=useState([]); const [mants,setMants]=useState([]);
   const [wrules,setWrules]=useState([]); const [trates,setTrates]=useState([]); const [sla,setSla]=useState([]);
-  const [sel,setSel]=useState(null); const [q,setQ]=useState(''); const [fEst,setFEst]=useState('');
+  const [sel,setSel]=useState(null); const [q,setQ]=useState(''); const [fEst,setFEst]=useState(''); const [buzCount,setBuzCount]=useState(0);
   const router=useRouter();
   const brand=(tenant&&tenant.color_primario)||T.brand;
   function avisar(t,c){ setToast({t:t,c:c}); setTimeout(function(){ setToast(null); },2600); }
