@@ -6,6 +6,7 @@ import { T, S, estColor, fmtCLP, fmtFecha } from '../../lib/ui';
 import TablaPro from '../../lib/consola/TablaPro';
 import { list, save, remove, onChange } from '../../lib/data';
 import FichaOT from '../../lib/consola/FichaOT';
+import FichaCliente from '../../lib/consola/FichaCliente';
 import Buzon from '../../lib/consola/Buzon';
 import ModNuevaOT from '../../lib/consola/mod_nuevaot';
 import ModClientes from '../../lib/consola/mod_clientes';
@@ -42,6 +43,7 @@ export default function Consola(){
   const [wrules,setWrules]=useState([]); const [trates,setTrates]=useState([]); const [sla,setSla]=useState([]);
   const [usersMap,setUsersMap]=useState({}); const [satsMap,setSatsMap]=useState({});
   const [sel,setSel]=useState(null);
+  const [cliSel,setCliSel]=useState(null);
   const [q,setQ]=useState(''); const [fEst,setFEst]=useState('');
   const [buzCount,setBuzCount]=useState(0);
   const router=useRouter();
@@ -71,10 +73,10 @@ export default function Consola(){
     setBuzCount(r[0].filter(esPendiente).length+(extra[0].data||[]).length+(extra[1].data||[]).length);
   }
   function exportExcel(){
-    var head=['ID OT','OT','Fecha Ingreso','Cliente','RUT','Tipo Equipo','Tipo Servicio','Técnico/SSTT','Estado','Fecha Prog.','Cantidad','Horas','Venta Total','Costo Total','Margen','%Margen','FTF','Nota','Nivel','Detalle','Modelo'];
+    var head=['ID OT','OT','Fecha Ingreso','Cliente','RUT','Tipo Equipo','Tipo Servicio','Técnico/SSTT','Estado','Fecha Prog.','Cantidad','Venta Total','Costo Total','Margen','%Margen','FTF','Nota','Nivel','Detalle','Modelo'];
     var rows=ots.map(function(o){
       var c=cust[o.customer_id]||{}; var k=o.kpi||{};
-      return [o.ext_id||('OT-'+o.ot_number),o.ot_number,o.created_at||'',c.nombre||'',c.rut||'',k.tipo_equipo||'',o.tipo||'',tecName(o),o.estado||'',o.fecha_programada||'',o.cantidad_unidades||1,k.horas||0,k.venta_total||0,k.costo_total||0,k.margen||0,k.pct_margen||'',k.ftf||'',k.nota||'',k.nivel||'',String(o.descripcion||'').replace(/[;\n]/g,','),String(o.modelo_limpio||'').replace(/[;\n]/g,',')].join(';');
+      return [o.ext_id||('OT-'+o.ot_number),o.ot_number,o.created_at||'',c.nombre||'',c.rut||'',k.tipo_equipo||'',o.tipo||'',tecName(o),o.estado||'',o.fecha_programada||'',o.cantidad_unidades||1,k.venta_total||0,k.costo_total||0,k.margen||0,k.pct_margen||'',k.ftf||'',k.nota||'',k.nivel||'',String(o.descripcion||'').replace(/[;\n]/g,','),String(o.modelo_limpio||'').replace(/[;\n]/g,',')].join(';');
     });
     var a=document.createElement('a');
     a.href=URL.createObjectURL(new Blob(['\uFEFF'+head.join(';')+'\n'+rows.join('\n')],{type:'text/csv'}));
@@ -164,17 +166,4 @@ export default function Consola(){
           {tab==='bodega'? <ModBodega avisar={avisar}/> : null}
           {tab==='productos'? <ModProductos avisar={avisar}/> : null}
           {tab==='checklists'? <ModChecklists avisar={avisar}/> : null}
-          {tab==='clientes'? <ModClientes avisar={avisar}/> : null}
-          {tab==='activos'? <ModActivos avisar={avisar}/> : null}
-          {tab==='tecnicos'? <ModTecnicos avisar={avisar}/> : null}
-          {tab==='presupuestos'? <ModPresupuestos avisar={avisar} tenant={tenant}/> : null}
-          {tab==='red'? <ModRed avisar={avisar}/> : null}
-          {tab==='bonos'? <ModBonos avisar={avisar}/> : null}
-          {tab==='importar'? <ModImportar avisar={avisar} onOk={cargar}/> : null}
-          {tab==='conectores'? <ModConectores avisar={avisar}/> : null}
-          {tab==='config'? <ModConfig tenant={tenant} avisar={avisar} onTenant={setTenant}/> : null}
-        </div></div>
-      </div>
-      {sel? <FichaOT ot={sel} cust={cust} avisar={avisar} onClose={function(){ setSel(null); }} onChanged={cargar}/> : null}
-    </main>);
-}
+          {tab==='clientes'? <ModClientes avisar={avisar} onOpenCliente={function(cc){ set
