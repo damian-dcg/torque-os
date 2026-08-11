@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '../supabase';
 import { T, S } from '../ui';
+import { emit } from '../data';
 
 const mapTipo={'ARMADO':'armado_unidad','GARANTIA':'repuesto_garantia','EVALUACION':'evaluacion','POST VENTA':'servicio','DEVOLUCION':'devolucion_dinero','RETIRO':'retiro','RECLAMO':'reclamo','MANTENCION':'mantencion'};
 function money(s){ if(s==null) return 0; let t=String(s).replace(/[^0-9.,-]/g,''); if(t===''||t==='-') return 0; if(t.includes(',')) t=t.replace(/,/g,''); return parseFloat(t)||0; }
