@@ -12,7 +12,7 @@ function BarsG({data}){ const max=Math.max(...data.map(d=>d.a+d.b),1);
 
 export default function ModKpis(){
   const [ots,setOts]=useState([]);
-  useEffect(()=>{ supabase.from('work_orders').select('*').limit(2000).then(({data})=>setOts(data||[])); },[]);
+  useEffect(()=>{ const c=()=>supabase.from('work_orders').select('*').limit(2000).then(({data})=>setOts(data||[])); c(); return onChange(c); },[]);
   const K=o=>o.kpi||{};
   const cerr=ots.filter(o=>o.estado==='Cerrada');
   const ftf=cerr.length?Math.round(cerr.filter(o=>String(K(o).ftf).toUpperCase()==='SI').length/cerr.length*100):0;
