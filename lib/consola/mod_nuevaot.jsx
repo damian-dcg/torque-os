@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
 import { T, S } from '../ui';
+import Mapa from './Mapa';
+import { geocode } from './geo';
 
 const defaultByType=t=>{const x=(t||'').toLowerCase(); if(x.includes('volumen'))return 'CK-ARM-VOL-BICI'; if(x.includes('armado'))return 'CK-ARM-BICI'; if(x.includes('garantia'))return 'CK-EVAL-GARANTIA'; if(x.includes('retiro'))return 'CK-RETIRO'; if(x.includes('manten'))return 'CK-MANT-ELEC'; return 'CK-REP-CONV';};
 
