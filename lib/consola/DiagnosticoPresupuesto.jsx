@@ -10,6 +10,7 @@ export default function DiagnosticoPresupuesto(props){
   var s1=useState({tecnico:d.tecnico||'',causa:d.causa||'',falla:d.falla||''}),diag=s1[0],setDiag=s1[1];
   var s2=useState([{concepto:'',cantidad:1,precio:0}]),items=s2[0],setItems=s2[1];
   var s3=useState(null),pres=s3[0],setPres=s3[1];
+  var s4=useState(''),vig=s4[0],setVig=s4[1];
   useEffect(function(){ (async function(){ var r=await supabase.from('presupuestos').select('*').eq('ot_id',ot.id).limit(1); var p=(r.data||[])[0]||null; setPres(p); if(p&&p.items&&p.items.length) setItems(p.items); })(); },[ot.id]);
   var total=items.reduce(function(s,x){ return s+(Number(x.cantidad)||0)*(Number(x.precio)||0); },0);
   async function guardarDiag(){ var e=await supabase.from('work_orders').update({diagnostico:diag}).eq('id',ot.id); if(e.error) avisar('⛗ '+e.error.message,T.danger); else { avisar('✅ Diagnóstico guardado',T.ok); onChanged(); } }
