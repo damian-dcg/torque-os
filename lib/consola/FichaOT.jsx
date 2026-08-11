@@ -99,6 +99,7 @@ export default function FichaOT(props){
             <a style={{...S.btnO(T.info),width:'auto',marginBottom:0,textDecoration:'none'}} href={'tel:'+String(c.telefono||'').replace(/[^\d+]/g,'')}>📞 Llamar</a>
             <a style={{...S.btnO(T.ok),width:'auto',marginBottom:0,textDecoration:'none'}} href={'https://wa.me/'+String(c.telefono||'').replace(/[^\d+]/g,'')} target="_blank">💬 WhatsApp</a>
             <button style={{...S.btnO(T.warn),width:'auto',marginBottom:0}} onClick={verMapa}>🗺 Mapa</button>
+                        <button style={{...S.btnO(T.violet),width:'auto',marginBottom:0}} onClick={function(){ if(props.onOpenCliente) props.onOpenCliente(c); }}>📇 Ficha cliente</button>
           </div>
         </div>
 
