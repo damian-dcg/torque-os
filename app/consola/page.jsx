@@ -40,6 +40,7 @@ export default function Consola(){
   const [cust,setCust]=useState({});
   const [fams,setFams]=useState([]); const [servs,setServs]=useState([]); const [mants,setMants]=useState([]);
   const [wrules,setWrules]=useState([]); const [trates,setTrates]=useState([]); const [sla,setSla]=useState([]);
+  const [usersMap,setUsersMap]=useState({}); const [satsMap,setSatsMap]=useState({});
   const [sel,setSel]=useState(null);
   const [q,setQ]=useState(''); const [fEst,setFEst]=useState('');
   const [buzCount,setBuzCount]=useState(0);
@@ -47,26 +48,33 @@ export default function Consola(){
   const brand=(tenant&&tenant.color_primario)||T.brand;
   function avisar(t,c){ setToast({t:t,c:c}); setTimeout(function(){ setToast(null); },2600); }
   function esPendiente(o){ return o.estado==='Ingresada'&&!o.asignado_user_id&&!o.asignado_company_id; }
+  function tecName(o){
+    if(o.asignado_user_id) return usersMap[o.asignado_user_id]||('Téc #'+o.asignado_user_id);
+    if(o.asignado_company_id) return satsMap[o.asignado_company_id]||('SSTT #'+o.asignado_company_id);
+    return '—';
+  }
 
   async function cargar(){
     const r=await Promise.all([
       list('work_orders'),list('customers'),list('product_families'),list('service_types'),
-      list('mant_types'),list('warranty_rules'),list('tech_rates'),list('sla_matrix')
+      list('mant_types'),list('warranty_rules'),list('tech_rates'),list('sla_matrix'),
+      list('users'),supabase.from('companies').select('id,nombre').eq('tipo','sat')
     ]);
     setOts(r[0]); const cm={}; r[1].forEach(function(x){cm[x.id]=x;}); setCust(cm);
     setFams(r[2]); setServs(r[3]); setMants(r[4]); setWrules(r[5]); setTrates(r[6]); setSla(r[7]);
+    const um={}; (r[8]||[]).forEach(function(x){um[x.id]=x.nombre;}); setUsersMap(um);
+    const sm={}; ((r[9]&&r[9].data)||[]).forEach(function(x){sm[x.id]=x.nombre;}); setSatsMap(sm);
     const extra=await Promise.all([
       supabase.from('notifications').select('*').eq('rol_destino','agente'),
       supabase.from('insistencias').select('*')
     ]);
-    const pend=r[0].filter(esPendiente).length;
-    setBuzCount(pend+(extra[0].data||[]).length+(extra[1].data||[]).length);
+    setBuzCount(r[0].filter(esPendiente).length+(extra[0].data||[]).length+(extra[1].data||[]).length);
   }
   function exportExcel(){
-    var head=['ID OT','OT','Fecha Ingreso','Cliente','RUT','Tipo Equipo','Tipo Servicio','Técnico','Estado','Fecha Promesa','Cantidad','Horas','Venta Total','Costo Total','Margen','%Margen','FTF','Nota','Nivel','Detalle','Modelo'];
+    var head=['ID OT','OT','Fecha Ingreso','Cliente','RUT','Tipo Equipo','Tipo Servicio','Técnico/SSTT','Estado','Fecha Prog.','Cantidad','Horas','Venta Total','Costo Total','Margen','%Margen','FTF','Nota','Nivel','Detalle','Modelo'];
     var rows=ots.map(function(o){
       var c=cust[o.customer_id]||{}; var k=o.kpi||{};
-      return [o.ext_id||('OT-'+o.ot_number),o.ot_number,o.created_at||'',c.nombre||'',c.rut||'',k.tipo_equipo||'',o.tipo||'',o.tecnico_nombre||'',o.estado||'',o.fecha_promesa||'',o.cantidad_unidades||1,k.horas||0,k.venta_total||0,k.costo_total||0,k.margen||0,k.pct_margen||'',k.ftf||'',k.nota||'',k.nivel||'',String(o.descripcion||'').replace(/[;\n]/g,','),String(o.modelo_limpio||'').replace(/[;\n]/g,',')].join(';');
+      return [o.ext_id||('OT-'+o.ot_number),o.ot_number,o.created_at||'',c.nombre||'',c.rut||'',k.tipo_equipo||'',o.tipo||'',tecName(o),o.estado||'',o.fecha_programada||'',o.cantidad_unidades||1,k.horas||0,k.venta_total||0,k.costo_total||0,k.margen||0,k.pct_margen||'',k.ftf||'',k.nota||'',k.nivel||'',String(o.descripcion||'').replace(/[;\n]/g,','),String(o.modelo_limpio||'').replace(/[;\n]/g,',')].join(';');
     });
     var a=document.createElement('a');
     a.href=URL.createObjectURL(new Blob(['\uFEFF'+head.join(';')+'\n'+rows.join('\n')],{type:'text/csv'}));
@@ -136,14 +144,15 @@ export default function Consola(){
               <button style={{...S.btnO(T.ok),width:'auto',marginBottom:0}} onClick={exportExcel}>⬇ Excel completo</button>
             </div>
             <div style={S.card}><table style={{width:'100%',borderCollapse:'collapse'}}>
-              <thead><tr><th style={S.th}>OT</th><th style={S.th}>Cliente</th><th style={S.th}>Tipo</th><th style={S.th}>Estado</th><th style={S.th}>Ingreso</th></tr></thead>
+              <thead><tr><th style={S.th}>OT</th><th style={S.th}>Cliente</th><th style={S.th}>Tipo</th><th style={S.th}>Técnico/SSTT</th><th style={S.th}>Fecha</th><th style={S.th}>Estado</th></tr></thead>
               <tbody>{visibles.slice(0,150).map(function(o){
                 return <tr key={o.id} onClick={function(){ setSel(o); }} style={{cursor:'pointer'}}>
                   <td style={{...S.td,color:brand,fontWeight:700}}>{o.ext_id||('OT-'+o.ot_number)}</td>
                   <td style={S.td}>{(cust[o.customer_id]||{}).nombre||'—'}</td>
                   <td style={S.td}>{o.tipo}</td>
+                  <td style={S.td}>{tecName(o)}</td>
+                  <td style={S.td}>{o.fecha_programada||'—'}</td>
                   <td style={S.td}><span style={S.pill(estColor(o.estado))}>{o.estado}</span></td>
-                  <td style={S.td}>{fmtFecha(o.created_at)}</td>
                 </tr>;
               })}</tbody>
             </table>
