@@ -23,7 +23,7 @@ import ModTecnicos from '../../lib/consola/mod_tecnicos';
 
 const CATS = {
   OPERACIONES: [['ots','Órdenes de Trabajo'],['nueva','Nueva OT'],['buzon','Buzón del Agente'],['agenda','Agenda'],['bodega','Bodega / Repuestos']],
-  ADMINISTRACION: [['maestros','Maestros y Parámetros'],['productos','Productos y Garantías'],['checklists','Checklists'],['clientes','Clientes'],['activos','Activos / Equipos']],
+  ADMINISTRACION: [['maestros','Maestros y Parámetros'],['productos','Productos y Garantías'],['checklists','Checklists'],['clientes','Clientes'],['activos','Activos / Equipos'],['tecnicos','Técnicos y SSTT']],
   FINANZAS: [['presupuestos','Presupuestos'],['red','Red SAT y Liquidaciones'],['bonos','Bonos']],
   ANALISIS: [['kpis','Dashboard KPIs'],['importar','Importar Datos'],['conectores','Conectores'],['config','Configuración']]
 };
@@ -34,25 +34,65 @@ export default function Consola(){
   const [cat,setCat]=useState('OPERACIONES');
   const [tab,setTab]=useState('ots');
   const [toast,setToast]=useState(null);
-  const [ots,setOts]=useState([]); const [cust,setCust]=useState({});
-  const [fams,setFams]=useState([]); const [servs,setServs]=useState([]); const [mants,setMants]=useState([]);
-  const [wrules,setWrules]=useState([]); const [trates,setTrates]=useState([]); const [sla,setSla]=useState([]);
-  const [sel,setSel]=useState(null); const [q,setQ]=useState(''); const [fEst,setFEst]=useState(''); const [buzCount,setBuzCount]=useState(0);
+  const [ots,setOts]=useState([]);
+  const [cust,setCust]=useState({});
+  const [fams,setFams]=useState([]);
+  const [servs,setServs]=useState([]);
+  const [mants,setMants]=useState([]);
+  const [wrules,setWrules]=useState([]);
+  const [trates,setTrates]=useState([]);
+  const [sla,setSla]=useState([]);
+  const [sel,setSel]=useState(null);
+  const [q,setQ]=useState('');
+  const [fEst,setFEst]=useState('');
+  const [buzCount,setBuzCount]=useState(0);
   const router=useRouter();
   const brand=(tenant&&tenant.color_primario)||T.brand;
-  function avisar(t,c){ setToast({t:t,c:c}); setTimeout(function(){ setToast(null); },2600); }
 
-   async function cargar(){
-    const r=await Promise.all([list('work_orders'),list('customers'),list('product_families'),list('service_types'),list('mant_types'),list('warranty_rules'),list('tech_rates'),list('sla_matrix'),list('ot_events')]);
-    setOts(r[0]); const cm={}; r[1].forEach(function(x){cm[x.id]=x;}); setCust(cm);
-    setFams(r[2]); setServs(r[3]); setMants(r[4]); setWrules(r[5]); setTrates(r[6]); setSla(r[7]);
+  function avisar(t,c){
+    setToast({t:t,c:c});
+    setTimeout(function(){ setToast(null); },2600);
+  }
+
+  async function cargar(){
+    const r=await Promise.all([
+      list('work_orders'),list('customers'),list('product_families'),list('service_types'),
+      list('mant_types'),list('warranty_rules'),list('tech_rates'),list('sla_matrix'),list('ot_events')
+    ]);
+    setOts(r[0]);
+    const cm={};
+    r[1].forEach(function(x){cm[x.id]=x;});
+    setCust(cm);
+    setFams(r[2]);
+    setServs(r[3]);
+    setMants(r[4]);
+    setWrules(r[5]);
+    setTrates(r[6]);
+    setSla(r[7]);
     setBuzCount((r[8]||[]).filter(function(e){ return ['alerta_repuesto','motivo','pausa_repuesto'].indexOf(e.evento)>=0; }).length);
   }
+
   function exportExcel(){
     var head=['ID OT','OT','Fecha Ingreso','Cliente','RUT','Tipo Equipo','Tipo Servicio','Técnico','Estado','Fecha Promesa','Fecha Inicio','Fecha Fin','Fecha Entrega','Cantidad','Horas','Venta MO','Costo Rep','Venta Rep','Costo Total','Venta Total','Margen','%Margen','FTF','Reincidencia','Nota','Nivel','Detalle','Modelo'];
-    var rows=ots.map(function(o){ var c=cust[o.customer_id]||{}; var k=o.kpi||{}; return [o.ext_id||('OT-'+o.ot_number),o.ot_number,o.created_at||'',c.nombre||'',c.rut||'',k.tipo_equipo||'',o.tipo||'',o.tecnico_nombre||'',o.estado||'',o.fecha_promesa||'',o.fecha_inicio||'',o.fecha_fin_tecnico||'',o.fecha_entrega_cliente||'',o.cantidad_unidades||1,k.horas||0,k.venta_mo||0,k.costo_rep||0,k.venta_rep||0,k.costo_total||0,k.venta_total||0,k.margen||0,k.pct_margen||'',k.ftf||'',k.reincidencia||'',k.nota||'',k.nivel||'',String(o.descripcion||'').replace(/[;\n]/g,','),String(o.modelo_limpio||'').replace(/[;\n]/g,',')].join(';'); });
-    var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['\uFEFF'+head.join(';')+'\n'+rows.join('\n')],{type:'text/csv'})); a.download='TORQUE-OS_base_completa.csv'; a.click();
+    var rows=ots.map(function(o){
+      var c=cust[o.customer_id]||{};
+      var k=o.kpi||{};
+      return [
+        o.ext_id||('OT-'+o.ot_number),o.ot_number,o.created_at||'',c.nombre||'',c.rut||'',
+        k.tipo_equipo||'',o.tipo||'',o.tecnico_nombre||'',o.estado||'',
+        o.fecha_promesa||'',o.fecha_inicio||'',o.fecha_fin_tecnico||'',o.fecha_entrega_cliente||'',
+        o.cantidad_unidades||1,k.horas||0,k.venta_mo||0,k.costo_rep||0,k.venta_rep||0,
+        k.costo_total||0,k.venta_total||0,k.margen||0,k.pct_margen||'',k.ftf||'',
+        k.reincidencia||'',k.nota||'',k.nivel||'',
+        String(o.descripcion||'').replace(/[;\n]/g,','),String(o.modelo_limpio||'').replace(/[;\n]/g,',')
+      ].join(';');
+    });
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob(['\uFEFF'+head.join(';')+'\n'+rows.join('\n')],{type:'text/csv'}));
+    a.download='TORQUE-OS_base_completa.csv';
+    a.click();
   }
+
   useEffect(function(){
     supabase.auth.getSession().then(async function(res){
       if(!res.data.session){ router.replace('/'); return; }
@@ -73,8 +113,9 @@ export default function Consola(){
 
   return (
     <main style={S.main}>
+      <style>{'@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}.blink{animation:blink 1s infinite}'}</style>
       {toast? <div style={S.toast(toast.c)}>{toast.t}</div> : null}
-            <header style={{position:'sticky',top:0,zIndex:30,background:'#0E1113',borderBottom:'1px solid #0E1113',padding:'10px 16px',display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
+      <header style={{position:'sticky',top:0,zIndex:30,background:'#0E1113',borderBottom:'1px solid #0E1113',padding:'10px 16px',display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
         <h1 style={{...S.h1,color:'#FFFFFF'}}>TORQUE<span style={{color:brand}}>·OS</span></h1>
         <span style={{...S.sub,color:'#AEB9C4'}}>{tenant?tenant.nombre:''}</span>
         <nav style={{display:'flex',gap:6,marginLeft:'auto',flexWrap:'wrap'}}>
@@ -86,20 +127,23 @@ export default function Consola(){
         <button onClick={async function(){ await supabase.auth.signOut(); router.replace('/'); }} style={{...S.btnO(T.danger),width:'auto',marginBottom:0,padding:'8px 14px'}}>Salir</button>
       </header>
       <div style={{display:'flex',alignItems:'flex-start'}}>
-               <aside style={{width:240,flexShrink:0,padding:'16px 12px',borderRight:'1px solid #22272D',minHeight:'calc(100vh - 60px)',background:'#2B3138'}}>
+        <aside style={{width:240,flexShrink:0,padding:'16px 12px',borderRight:'1px solid #22272D',minHeight:'calc(100vh - 60px)',background:'#2B3138'}}>
           <div style={{...S.sub,color:'#9AA6B2',fontWeight:800,marginBottom:10}}>{cat}</div>
           {CATS[cat].map(function(it){
-            return <button key={it[0]} onClick={function(){ setTab(it[0]); }} style={{display:'block',width:'100%',textAlign:'left',padding:'10px 12px',borderRadius:8,border:0,marginBottom:4,background:tab===it[0]?brand:'transparent',color:tab===it[0]?'#fff':'#DDE3E9',fontWeight:tab===it[0]?700:500,fontSize:13,cursor:'pointer'}}>{it[1]}</button>;
+            return <button key={it[0]} onClick={function(){ setTab(it[0]); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',width:'100%',textAlign:'left',padding:'10px 12px',borderRadius:8,border:0,marginBottom:4,background:tab===it[0]?brand:'transparent',color:tab===it[0]?'#fff':'#DDE3E9',fontWeight:tab===it[0]?700:500,fontSize:13,cursor:'pointer'}}>
+              <span>{it[1]}</span>
+              {it[0]==='buzon'&&buzCount>0? <span className="blink" style={{background:'#DC2626',color:'#fff',borderRadius:999,padding:'2px 8px',fontSize:11,fontWeight:800}}>{buzCount}</span> : null}
+            </button>;
           })}
         </aside>
         <div style={{flex:1,minWidth:0}}><div style={S.wrap}>
           {tab==='kpis'? <ModKpis/> : null}
           {tab==='maestros'? <div>
             <TablaPro titulo="Familias de producto" rows={fams} campos={[['code','Código'],['name','Nombre']]} onEdit={function(r,k,v){ save('product_families',{[k]:v},r.id); }} onAdd={function(f){ save('product_families',f); }} onDel={function(r){ remove('product_families',r.id); }}/>
-            <TablaPro titulo="Tipos de servicio" rows={servs} campos={[['code','Código'],['nombre','Nombre']]} onEdit={function(r,k,v){ save('service_types',{[k]:v},r.id); }} onAdd={function(f){ save('service_types',f); }} onDel={function(r){ remove('service_types',r.id); }}/>
+            <TablaPro titulo="Tipos de servicio" rows={servs} campos={[['code','Código'],['nombre','Nombre'],['base_price','Precio base','num']]} onEdit={function(r,k,v){ save('service_types',{[k]:v},r.id); }} onAdd={function(f){ save('service_types',f); }} onDel={function(r){ remove('service_types',r.id); }}/>
             <TablaPro titulo="Tipos de mantención" rows={mants} campos={[['nombre','Nombre'],['descripcion','Descripción']]} onEdit={function(r,k,v){ save('mant_types',{[k]:v},r.id); }} onAdd={function(f){ save('mant_types',f); }} onDel={function(r){ remove('mant_types',r.id); }}/>
-            <TablaPro titulo="Garantías por familia (meses)" rows={wrules} campos={[['family_id','ID Familia','num'],['meses','Meses','num'],['condiciones','Condiciones']]} onEdit={function(r,k,v){ save('warranty_rules',{[k]:v},r.id); }} onDel={function(r){ remove('warranty_rules',r.id); }}/>
-            <TablaPro titulo="Técnicos (costos)" rows={trates} campos={[['technician','Técnico'],['costo_x_hora','Costo×h','num'],['venta_x_hora','Venta×h','num']]} onEdit={function(r,k,v){ save('tech_rates',{[k]:v},r.id); }} onDel={function(r){ remove('tech_rates',r.id); }}/>
+            <TablaPro titulo="Garantías por familia (meses)" rows={wrules} campos={[['family_id','ID Familia','num'],['meses','Meses','num'],['condiciones','Condiciones']]} onEdit={function(r,k,v){ save('warranty_rules',{[k]:v},r.id); }} onAdd={function(f){ save('warranty_rules',f); }} onDel={function(r){ remove('warranty_rules',r.id); }}/>
+            <TablaPro titulo="Técnicos (costos)" rows={trates} campos={[['technician','Técnico'],['costo_sueldo_mensual','Sueldo','num'],['horas_mes','Horas/mes','num'],['costo_x_hora','Costo×h','num'],['venta_x_hora','Venta×h','num']]} onEdit={function(r,k,v){ save('tech_rates',{[k]:v},r.id); }} onAdd={function(f){ save('tech_rates',f); }} onDel={function(r){ remove('tech_rates',r.id); }}/>
             <TablaPro titulo="SLA (días)" rows={sla} campos={[['tipo_servicio','Servicio'],['tipo_equipo','Equipo'],['dias','Días','num']]} onEdit={function(r,k,v){ save('sla_matrix',{[k]:v},r.id); }} onAdd={function(f){ save('sla_matrix',f); }} onDel={function(r){ remove('sla_matrix',r.id); }}/>
           </div> : null}
           {tab==='ots'? <div>
@@ -109,6 +153,7 @@ export default function Consola(){
                 <option value="">Todos los estados</option>
                 {['Ingresada','Asignada','En Ruta','Llegada','Trabajando','Esperando Repuesto','Revisión QA','Cerrada','Rechazada'].map(function(s){ return <option key={s}>{s}</option>; })}
               </select>
+              <button style={{...S.btnO(T.ok),width:'auto',marginBottom:0}} onClick={exportExcel}>⬇ Excel completo</button>
             </div>
             <div style={S.card}><table style={{width:'100%',borderCollapse:'collapse'}}>
               <thead><tr><th style={S.th}>OT</th><th style={S.th}>Cliente</th><th style={S.th}>Tipo</th><th style={S.th}>Estado</th><th style={S.th}>Ingreso</th></tr></thead>
@@ -132,6 +177,7 @@ export default function Consola(){
           {tab==='checklists'? <ModChecklists avisar={avisar}/> : null}
           {tab==='clientes'? <ModClientes avisar={avisar}/> : null}
           {tab==='activos'? <ModActivos avisar={avisar}/> : null}
+          {tab==='tecnicos'? <ModTecnicos avisar={avisar}/> : null}
           {tab==='presupuestos'? <ModPresupuestos avisar={avisar} tenant={tenant}/> : null}
           {tab==='red'? <ModRed avisar={avisar}/> : null}
           {tab==='bonos'? <ModBonos avisar={avisar}/> : null}
