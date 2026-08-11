@@ -42,10 +42,16 @@ export default function Consola(){
   const brand=(tenant&&tenant.color_primario)||T.brand;
   function avisar(t,c){ setToast({t:t,c:c}); setTimeout(function(){ setToast(null); },2600); }
 
-  async function cargar(){
-    const r=await Promise.all([list('work_orders'),list('customers'),list('product_families'),list('service_types'),list('mant_types'),list('warranty_rules'),list('tech_rates'),list('sla_matrix')]);
-    setOts(r[0]); const cm={}; r[1].forEach(x=>{cm[x.id]=x;}); setCust(cm);
+   async function cargar(){
+    const r=await Promise.all([list('work_orders'),list('customers'),list('product_families'),list('service_types'),list('mant_types'),list('warranty_rules'),list('tech_rates'),list('sla_matrix'),list('ot_events')]);
+    setOts(r[0]); const cm={}; r[1].forEach(function(x){cm[x.id]=x;}); setCust(cm);
     setFams(r[2]); setServs(r[3]); setMants(r[4]); setWrules(r[5]); setTrates(r[6]); setSla(r[7]);
+    setBuzCount((r[8]||[]).filter(function(e){ return ['alerta_repuesto','motivo','pausa_repuesto'].indexOf(e.evento)>=0; }).length);
+  }
+  function exportExcel(){
+    var head=['ID OT','OT','Fecha Ingreso','Cliente','RUT','Tipo Equipo','Tipo Servicio','Técnico','Estado','Fecha Promesa','Fecha Inicio','Fecha Fin','Fecha Entrega','Cantidad','Horas','Venta MO','Costo Rep','Venta Rep','Costo Total','Venta Total','Margen','%Margen','FTF','Reincidencia','Nota','Nivel','Detalle','Modelo'];
+    var rows=ots.map(function(o){ var c=cust[o.customer_id]||{}; var k=o.kpi||{}; return [o.ext_id||('OT-'+o.ot_number),o.ot_number,o.created_at||'',c.nombre||'',c.rut||'',k.tipo_equipo||'',o.tipo||'',o.tecnico_nombre||'',o.estado||'',o.fecha_promesa||'',o.fecha_inicio||'',o.fecha_fin_tecnico||'',o.fecha_entrega_cliente||'',o.cantidad_unidades||1,k.horas||0,k.venta_mo||0,k.costo_rep||0,k.venta_rep||0,k.costo_total||0,k.venta_total||0,k.margen||0,k.pct_margen||'',k.ftf||'',k.reincidencia||'',k.nota||'',k.nivel||'',String(o.descripcion||'').replace(/[;\n]/g,','),String(o.modelo_limpio||'').replace(/[;\n]/g,',')].join(';'); });
+    var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['\uFEFF'+head.join(';')+'\n'+rows.join('\n')],{type:'text/csv'})); a.download='TORQUE-OS_base_completa.csv'; a.click();
   }
   useEffect(function(){
     supabase.auth.getSession().then(async function(res){
