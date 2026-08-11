@@ -18,6 +18,8 @@ import ModKpis from '../../lib/consola/mod_kpis';
 import ModConectores from '../../lib/consola/mod_conectores';
 import ModParametros from '../../lib/consola/mod_parametros';
 import ModProductos from '../../lib/consola/mod_productos';
+import ModImportar from '../../lib/consola/mod_importar';
+import ModBonos from '../../lib/consola/mod_bonos';
 
 export default function Consola(){
   const [me,setMe]=useState(null); const [tenant,setTenant]=useState(null);
