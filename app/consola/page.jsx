@@ -5,6 +5,8 @@ import { supabase } from '../../lib/supabase';
 import { T, S, estColor, fmtCLP, fmtFecha } from '../../lib/ui';
 import TablaPro from '../../lib/consola/TablaPro';
 import { list, save, remove, onChange } from '../../lib/data';
+import FichaOT from '../../lib/consola/FichaOT';
+import Buzon from '../../lib/consola/Buzon';
 import ModNuevaOT from '../../lib/consola/mod_nuevaot';
 import ModClientes from '../../lib/consola/mod_clientes';
 import ModAgenda from '../../lib/consola/mod_agenda';
@@ -36,63 +38,35 @@ export default function Consola(){
   const [toast,setToast]=useState(null);
   const [ots,setOts]=useState([]);
   const [cust,setCust]=useState({});
-  const [fams,setFams]=useState([]);
-  const [servs,setServs]=useState([]);
-  const [mants,setMants]=useState([]);
-  const [wrules,setWrules]=useState([]);
-  const [trates,setTrates]=useState([]);
-  const [sla,setSla]=useState([]);
+  const [fams,setFams]=useState([]); const [servs,setServs]=useState([]); const [mants,setMants]=useState([]);
+  const [wrules,setWrules]=useState([]); const [trates,setTrates]=useState([]); const [sla,setSla]=useState([]);
   const [sel,setSel]=useState(null);
-  const [q,setQ]=useState('');
-  const [fEst,setFEst]=useState('');
+  const [q,setQ]=useState(''); const [fEst,setFEst]=useState('');
   const [buzCount,setBuzCount]=useState(0);
   const router=useRouter();
   const brand=(tenant&&tenant.color_primario)||T.brand;
-
-  function avisar(t,c){
-    setToast({t:t,c:c});
-    setTimeout(function(){ setToast(null); },2600);
-  }
+  function avisar(t,c){ setToast({t:t,c:c}); setTimeout(function(){ setToast(null); },2600); }
 
   async function cargar(){
     const r=await Promise.all([
       list('work_orders'),list('customers'),list('product_families'),list('service_types'),
-      list('mant_types'),list('warranty_rules'),list('tech_rates'),list('sla_matrix'),list('ot_events')
+      list('mant_types'),list('warranty_rules'),list('tech_rates'),list('sla_matrix'),
+      list('notifications'),list('insistencias')
     ]);
-    setOts(r[0]);
-    const cm={};
-    r[1].forEach(function(x){cm[x.id]=x;});
-    setCust(cm);
-    setFams(r[2]);
-    setServs(r[3]);
-    setMants(r[4]);
-    setWrules(r[5]);
-    setTrates(r[6]);
-    setSla(r[7]);
-    setBuzCount((r[8]||[]).filter(function(e){ return ['alerta_repuesto','motivo','pausa_repuesto','alerta_stock','solicitud_portal'].indexOf(e.evento)>=0; }).length);
+    setOts(r[0]); const cm={}; r[1].forEach(function(x){cm[x.id]=x;}); setCust(cm);
+    setFams(r[2]); setServs(r[3]); setMants(r[4]); setWrules(r[5]); setTrates(r[6]); setSla(r[7]);
+    setBuzCount((r[8]||[]).length+(r[9]||[]).length);
   }
-
   function exportExcel(){
-    var head=['ID OT','OT','Fecha Ingreso','Cliente','RUT','Tipo Equipo','Tipo Servicio','Técnico','Estado','Fecha Promesa','Fecha Inicio','Fecha Fin','Fecha Entrega','Cantidad','Horas','Venta MO','Costo Rep','Venta Rep','Costo Total','Venta Total','Margen','%Margen','FTF','Reincidencia','Nota','Nivel','Detalle','Modelo'];
+    var head=['ID OT','OT','Fecha Ingreso','Cliente','RUT','Tipo Equipo','Tipo Servicio','Técnico','Estado','Fecha Promesa','Cantidad','Horas','Venta Total','Costo Total','Margen','%Margen','FTF','Nota','Nivel','Detalle','Modelo'];
     var rows=ots.map(function(o){
-      var c=cust[o.customer_id]||{};
-      var k=o.kpi||{};
-      return [
-        o.ext_id||('OT-'+o.ot_number),o.ot_number,o.created_at||'',c.nombre||'',c.rut||'',
-        k.tipo_equipo||'',o.tipo||'',o.tecnico_nombre||'',o.estado||'',
-        o.fecha_promesa||'',o.fecha_inicio||'',o.fecha_fin_tecnico||'',o.fecha_entrega_cliente||'',
-        o.cantidad_unidades||1,k.horas||0,k.venta_mo||0,k.costo_rep||0,k.venta_rep||0,
-        k.costo_total||0,k.venta_total||0,k.margen||0,k.pct_margen||'',k.ftf||'',
-        k.reincidencia||'',k.nota||'',k.nivel||'',
-        String(o.descripcion||'').replace(/[;\n]/g,','),String(o.modelo_limpio||'').replace(/[;\n]/g,',')
-      ].join(';');
+      var c=cust[o.customer_id]||{}; var k=o.kpi||{};
+      return [o.ext_id||('OT-'+o.ot_number),o.ot_number,o.created_at||'',c.nombre||'',c.rut||'',k.tipo_equipo||'',o.tipo||'',o.tecnico_nombre||'',o.estado||'',o.fecha_promesa||'',o.cantidad_unidades||1,k.horas||0,k.venta_total||0,k.costo_total||0,k.margen||0,k.pct_margen||'',k.ftf||'',k.nota||'',k.nivel||'',String(o.descripcion||'').replace(/[;\n]/g,','),String(o.modelo_limpio||'').replace(/[;\n]/g,',')].join(';');
     });
     var a=document.createElement('a');
     a.href=URL.createObjectURL(new Blob(['\uFEFF'+head.join(';')+'\n'+rows.join('\n')],{type:'text/csv'}));
-    a.download='TORQUE-OS_base_completa.csv';
-    a.click();
+    a.download='TORQUE-OS_base_completa.csv'; a.click();
   }
-
   useEffect(function(){
     supabase.auth.getSession().then(async function(res){
       if(!res.data.session){ router.replace('/'); return; }
@@ -169,7 +143,7 @@ export default function Consola(){
             </table>
             {visibles.length===0? <p style={{...S.sub,padding:12}}>Sin OTs. Carga tu base real en ANÁLISIS → Importar Datos.</p> : null}</div>
           </div> : null}
-          {tab==='buzon'? <div style={S.card}><h2 style={S.h2}>Buzón del Agente</h2><p style={S.sub}>Rechazos con motivo, repuestos y pausas aparecen aquí en tiempo real.</p></div> : null}
+          {tab==='buzon'? <Buzon ots={ots} onOpen={function(o){ setSel(o); }}/> : null}
           {tab==='agenda'? <ModAgenda avisar={avisar}/> : null}
           {tab==='nueva'? <ModNuevaOT avisar={avisar} onOk={cargar}/> : null}
           {tab==='bodega'? <ModBodega avisar={avisar}/> : null}
@@ -186,19 +160,6 @@ export default function Consola(){
           {tab==='config'? <ModConfig tenant={tenant} avisar={avisar} onTenant={setTenant}/> : null}
         </div></div>
       </div>
-      {sel? <div style={S.modal} onClick={function(){ setSel(null); }}>
-        <div style={S.modalCard} onClick={function(e){ e.stopPropagation(); }}>
-          <div style={{display:'flex',justifyContent:'space-between'}}><h2 style={{...S.h2,color:brand}}>{sel.ext_id||('OT-'+sel.ot_number)}</h2><span style={S.pill(estColor(sel.estado))}>{sel.estado}</span></div>
-          <p style={S.sub}>{(cust[sel.customer_id]||{}).nombre||'—'} · {sel.tipo} · {fmtFecha(sel.created_at)}</p>
-          <p style={{...S.sub,margin:'6px 0'}}>{sel.descripcion}</p>
-          {sel.kpi&&sel.kpi.margen!=null? <p style={{color:sel.kpi.margen<0?T.danger:T.ok,fontWeight:700}}>Margen: {fmtCLP(sel.kpi.margen)} · FTF: {sel.kpi.ftf} · SLA: {sel.kpi.nivel}</p> : null}
-          <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:10}}>
-            <button style={{...S.btnO(T.info),width:'auto'}} onClick={function(){ setCat('ADMINISTRACION'); setTab('clientes'); setSel(null); }}>Ver cliente</button>
-            <button style={{...S.btnO(T.teal),width:'auto'}} onClick={function(){ setCat('ADMINISTRACION'); setTab('activos'); setSel(null); }}>Ver activos</button>
-            <button style={{...S.btnO(T.warn),width:'auto'}} onClick={function(){ setCat('OPERACIONES'); setTab('bodega'); setSel(null); }}>Bodega</button>
-          </div>
-          <button style={S.btn(T.muted)} onClick={function(){ setSel(null); }}>Cerrar</button>
-        </div>
-      </div> : null}
+      {sel? <FichaOT ot={sel} cust={cust} avisar={avisar} onClose={function(){ setSel(null); }} onChanged={cargar}/> : null}
     </main>);
 }
