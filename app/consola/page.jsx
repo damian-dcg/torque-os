@@ -67,9 +67,9 @@ export default function Consola(){
   return (
     <main style={S.main}>
       {toast? <div style={S.toast(toast.c)}>{toast.t}</div> : null}
-      <header style={{position:'sticky',top:0,zIndex:30,background:T.surface,borderBottom:'1px solid '+T.border,padding:'10px 16px',display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
-        <h1 style={S.h1}>TORQUE<span style={{color:brand}}>·OS</span></h1>
-        <span style={S.sub}>{tenant?tenant.nombre:''}</span>
+            <header style={{position:'sticky',top:0,zIndex:30,background:'#0E1113',borderBottom:'1px solid #0E1113',padding:'10px 16px',display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
+        <h1 style={{...S.h1,color:'#FFFFFF'}}>TORQUE<span style={{color:brand}}>·OS</span></h1>
+        <span style={{...S.sub,color:'#AEB9C4'}}>{tenant?tenant.nombre:''}</span>
         <nav style={{display:'flex',gap:6,marginLeft:'auto',flexWrap:'wrap'}}>
           {Object.keys(CATS).map(function(c){
             return <button key={c} onClick={function(){ setCat(c); setTab(CATS[c][0][0]); }} style={{padding:'9px 16px',borderRadius:999,border:cat===c?'0':'1px solid '+T.border,background:cat===c?brand:'transparent',color:cat===c?'#fff':T.text,fontWeight:700,fontSize:13,cursor:'pointer'}}>{c}</button>;
