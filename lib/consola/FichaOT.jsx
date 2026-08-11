@@ -107,6 +107,9 @@ export default function FichaOT(props){
           {dp.boleta_url? <a style={{...S.btnO(T.violet),width:'auto',marginBottom:0,textDecoration:'none'}} href={dp.boleta_url} target="_blank">🧾 Ver boleta adjunta</a> : <p style={{...S.sub,margin:'4px 0'}}>Sin boleta adjunta.</p>}
         </div>
 
+        <HistorialActivo customer_id={ot.customer_id} ot_id={ot.id}/>
+        <DiagnosticoPresupuesto ot={ot} avisar={avisar} onChanged={onChanged}/>
+        
         <div style={{background:T.surface2,borderRadius:10,padding:12,marginBottom:12}}>
           <h3 style={{...S.h2,margin:'0 0 6px'}}>Gestión</h3>
           {abierta? <div>
