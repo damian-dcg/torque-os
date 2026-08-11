@@ -152,7 +152,7 @@ export default function Tecnico(){
 
   if(!user) return (
     <main style={{...S.main,display:'grid',placeItems:'center',padding:16}}>{Toast}
-      <form onSubmit={async function(e){ e.preventDefault(); var d=await supabase.auth.signInWithPassword({email:login.email,password:login.pass}); if(d.error) avisar('⛔ Credenciales incorrectas',T.danger); else setUser(d.session.user); }} style={{...S.card,width:'100%',maxWidth:360,padding:26}}>
+      <form onSubmit={async function(e){ e.preventDefault(); var d=await supabase.auth.signInWithPassword({email:login.email,password:login.pass}); if(d.error||!d.data||!d.data.session) avisar('⛔ Credenciales incorrectas',T.danger); else setUser(d.data.session.user); }}
         <h1 style={{...S.h1,fontSize:24,marginBottom:2}}>TORQUE<span style={{color:(tenant&&tenant.color_primario)||T.brand}}>·OS</span></h1>
         <p style={{...S.sub,margin:'0 0 18px'}}>Acceso técnico de terreno</p>
         <label style={S.label}>Correo</label><input style={S.input} type="email" value={login.email} onChange={function(e){setLogin({email:e.target.value,pass:login.pass});}} required/>
