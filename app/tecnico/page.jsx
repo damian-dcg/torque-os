@@ -369,6 +369,17 @@ export default function Tecnico(){
               </div>);
           })}
         </div>) : null}
+            {proxima? (
+        <div style={{...S.card,border:'2px solid '+T.brand}}>
+          <h4 style={{...S.h2,color:T.brand,margin:'0 0 6px'}}>📍 Próxima parada {proxima.ruta_orden?('#'+proxima.ruta_orden):''} {proxima.eta?('· ETA '+proxima.eta):''}</h4>
+          <p style={{margin:0,fontWeight:700}}>{(cust[proxima.customer_id]||{}).nombre||'Cliente'}</p>
+          <p style={{...S.sub,margin:'4px 0'}}>{proxima.direccion||(cust[proxima.customer_id]||{}).direccion||''}</p>
+          <div style={{display:'flex',gap:8,marginTop:8}}>
+            <a style={{...S.btnO(T.info),flex:1,textAlign:'center',textDecoration:'none',marginBottom:0}} href={'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(proxima.direccion||(cust[proxima.customer_id]||{}).direccion||'')} target="_blank">🗺 Ruta</a>
+            <a style={{...S.btnO(T.ok),flex:1,textAlign:'center',textDecoration:'none',marginBottom:0}} href={'tel:'+String((cust[proxima.customer_id]||{}).telefono||'').replace(/[^\d+]/g,'')}>📞 Llamar</a>
+            <button style={{...S.btn(T.brand),flex:1,marginBottom:0}} onClick={function(){ setSel(proxima.id); }}>Abrir OT</button>
+          </div>
+        </div>) : null}
       <h4 style={{...S.sub,fontWeight:700,margin:'4px 0 10px'}}>MIS ÓRDENES ACTIVAS</h4>
       {activas.map(function(o){
         var c=cust[o.customer_id]||{};
