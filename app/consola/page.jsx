@@ -166,4 +166,18 @@ export default function Consola(){
           {tab==='bodega'? <ModBodega avisar={avisar}/> : null}
           {tab==='productos'? <ModProductos avisar={avisar}/> : null}
           {tab==='checklists'? <ModChecklists avisar={avisar}/> : null}
-          {tab==='clientes'? <ModClientes avisar={avisar} onOpenCliente={function(cc){ set
+          {tab==='clientes'? <ModClientes avisar={avisar} onOpenCliente={function(cc){ setCliSel(cc); }}/> : null}
+          {tab==='activos'? <ModActivos avisar={avisar}/> : null}
+          {tab==='tecnicos'? <ModTecnicos avisar={avisar}/> : null}
+          {tab==='presupuestos'? <ModPresupuestos avisar={avisar} tenant={tenant}/> : null}
+          {tab==='red'? <ModRed avisar={avisar}/> : null}
+          {tab==='bonos'? <ModBonos avisar={avisar}/> : null}
+          {tab==='importar'? <ModImportar avisar={avisar} onOk={cargar}/> : null}
+          {tab==='conectores'? <ModConectores avisar={avisar}/> : null}
+          {tab==='config'? <ModConfig tenant={tenant} avisar={avisar} onTenant={setTenant}/> : null}
+        </div></div>
+      </div>
+      {sel? <FichaOT ot={sel} cust={cust} avisar={avisar} onClose={function(){ setSel(null); }} onChanged={cargar} onOpenCliente={function(cc){ setCliSel(cc); }}/> : null}
+      {cliSel? <FichaCliente cliente={cliSel} onClose={function(){ setCliSel(null); }} onOpenOT={function(o){ setSel(o); }}/> : null}
+    </main>);
+}
