@@ -163,6 +163,7 @@ export default function Consola(){
           </div> : null}
           {tab==='buzon'? <Buzon ots={ots} cust={cust} onOpen={function(o){ setSel(o); }} onChanged={cargar}/> : null}
           {tab==='agenda'? <ModAgenda avisar={avisar}/> : null}
+          {tab==='rutas'? <ModRutas avisar={avisar}/> : null}
           {tab==='nueva'? <ModNuevaOT avisar={avisar} onOk={cargar}/> : null}
           {tab==='bodega'? <ModBodega avisar={avisar}/> : null}
           {tab==='productos'? <ModProductos avisar={avisar}/> : null}
