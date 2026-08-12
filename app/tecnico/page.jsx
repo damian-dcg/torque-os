@@ -211,6 +211,8 @@ export default function Tecnico(){
   const total=subtotal+iva;
   const pendientes=ots.filter(function(o){return o.estado==='Ingresada';});
   const activas=ots.filter(function(o){return ['Ingresada','Cerrada','Rechazada'].indexOf(o.estado)<0;});
+  const ordenadas=activas.slice().sort(function(a,b){ return (a.ruta_orden||999)-(b.ruta_orden||999); });
+  const proxima=ordenadas[0]||null;
 
   function valItem(g,it,i){ return answers[it.id||g.code+'_'+i]; }
   function falta(){
