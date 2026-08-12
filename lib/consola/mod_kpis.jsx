@@ -106,10 +106,14 @@ export default function ModKpis(){
   });
 
   var porKm={};
-  ots.forEach(function(o){ var t=o.tecnico_nombre||'—'; if(t==='—')return; porKm[t]=(porKm[t]||0)+(Number(o.km_estimado)||0); });
+  ots.forEach(function(o){
+    var t=o.tecnico_nombre||'—';
+    if(t==='—') return;
+    porKm[t]=(porKm[t]||0)+(Number(o.km_estimado)||0);
+  });
   var dataKm=[];
   Object.keys(porKm).forEach(function(k){ dataKm.push({l:k.split(' ')[0],v:porKm[k]}); });
-  
+
   var dataSla=[{l:'ALTA',v:alta},{l:'MEDIA',v:media},{l:'BAJA',v:baja}];
 
   return (
