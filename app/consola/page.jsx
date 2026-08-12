@@ -172,6 +172,7 @@ export default function Consola(){
           {tab==='clientes'? <ModClientes avisar={avisar} onOpenCliente={function(cc){ setCliSel(cc); }}/> : null}
           {tab==='activos'? <ModActivos avisar={avisar}/> : null}
           {tab==='tecnicos'? <ModTecnicos avisar={avisar}/> : null}
+          {tab==='paquetes'? <ModPaquetes avisar={avisar}/> : null}
           {tab==='presupuestos'? <ModPresupuestos avisar={avisar} tenant={tenant}/> : null}
           {tab==='red'? <ModRed avisar={avisar}/> : null}
           {tab==='bonos'? <ModBonos avisar={avisar}/> : null}
