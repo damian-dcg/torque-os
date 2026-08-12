@@ -81,7 +81,7 @@ export default function ModRutas(props){
   async function aplicar(){
     if(!plan) return;
     for(var i=0;i<plan.legs.length;i++){
-      await supabase.from('work_orders').update({ruta_orden:i+1,eta:plan.legs[i].eta}).eq('id',plan.legs[i].ot.id);
+            await supabase.from('work_orders').update({ruta_orden:i+1,eta:plan.legs[i].eta,km_estimado:plan.legs[i].km||0}).eq('id',plan.legs[i].ot.id);
     }
     avisar('✅ Orden y ETAs guardados en las OTs',T.ok);
     cargar();
