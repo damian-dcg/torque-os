@@ -23,6 +23,7 @@ import ModRed from '../../lib/consola/mod_red';
 import ModPresupuestos from '../../lib/consola/mod_presupuestos';
 import ModBodega from '../../lib/consola/mod_bodega';
 import ModRutas from '../../lib/consola/mod_rutas';
+import ModPaquetes from '../../lib/consola/mod_paquetes';
 import ModTecnicos from '../../lib/consola/mod_tecnicos';
 
 const CATS = {
