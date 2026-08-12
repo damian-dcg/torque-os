@@ -131,6 +131,7 @@ export default function ModKpis(){
         <div style={S.card}><h2 style={S.h2}>Volumen por tipo de equipo</h2><BarsV data={dataEq}/></div>
         <div style={S.card}><h2 style={S.h2}>Unidades por técnico</h2><BarsV color={T.warn} data={dataTecU}/></div>
         <div style={S.card}><h2 style={S.h2}>Horas estándar por técnico</h2><BarsV color={T.teal} data={dataTecH}/></div>
+        <div style={S.card}><h2 style={S.h2}>Km por técnico (rutas)</h2><BarsV color={T.info} data={dataKm}/></div>
       </div>
     </div>
   );
