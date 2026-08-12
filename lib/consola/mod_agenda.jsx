@@ -11,6 +11,7 @@ export default function ModAgenda(props){
   var s5=useState(function(){ var d=new Date(); return new Date(d.getFullYear(),d.getMonth(),1); }),mes=s5[0],setMes=s5[1];
   var s6=useState(new Date().toISOString().slice(0,10)),dia=s6[0],setDia=s6[1];
   var s7=useState(null),sel=s7[0],setSel=s7[1];
+  var s8=useState(4),cap=s8[0],setCap=s8[1];
   async function cargar(){ var r=await Promise.all([supabase.from('work_orders').select('*').limit(800),supabase.from('users').select('id,nombre,rol'),supabase.from('companies').select('id,nombre').eq('tipo','sat')]); setOts(r[0].data||[]); setUsers(r[1].data||[]); setSats(r[2].data||[]); }
   useEffect(function(){ cargar(); },[]);
   function fkey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
