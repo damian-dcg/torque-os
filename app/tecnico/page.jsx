@@ -392,7 +392,7 @@ export default function Tecnico(){
           }} style={{...S.btnO(T.border),textAlign:'left',padding:14,color:T.text}}>
             <div style={{display:'flex',justifyContent:'space-between'}}><b style={{color:brand}}>OT-{o.ot_number}</b><span style={S.pill(estColor(o.estado))}>{o.estado}</span></div>
             <div style={{fontWeight:600,marginTop:6}}>{c.nombre||'Cliente'} · {o.tipo}</div>
-            <div style={{...S.sub,marginTop:2}}>{o.direccion||c.direccion||''}</div>
+                        <div style={{...S.sub,marginTop:2}}>{o.direccion||c.direccion||''}{o.ruta_orden?(' · #'+o.ruta_orden):''}{o.eta?(' · ETA '+o.eta):''}</div>
           </button>);
       })}
       {activas.length===0&&pendientes.length===0? <p style={S.sub}>Sin OTs activas.</p> : null}
