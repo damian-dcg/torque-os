@@ -70,7 +70,7 @@ export default function ModRutas(props){
       var svc=60;
       totalMin+=travel+svc; totalKm+=km; eta+=travel;
       var hh=Math.floor(eta/60); var mm=Math.round(eta%60);
-      legs.push({ot:stops[idx].ot,lat:stops[idx].lat,lng:stops[idx].lng,travel:Math.round(travel),eta:(hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm});
+            legs.push({ot:stops[idx].ot,lat:stops[idx].lat,lng:stops[idx].lng,travel:Math.round(travel),km:Math.round(km),eta:(hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm});
       eta+=svc;
     }
     setPlan({legs:legs,totalMin:Math.round(totalMin),totalKm:Math.round(totalKm)});
