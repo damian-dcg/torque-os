@@ -26,11 +26,12 @@ import ModRutas from '../../lib/consola/mod_rutas';
 import ModPaquetes from '../../lib/consola/mod_paquetes';
 import ModTecnicos from '../../lib/consola/mod_tecnicos';
 import ModAuditoria from '../../lib/consola/mod_auditoria';
+import ModParametros from '../../lib/consola/mod_parametros';
 
 const CATS = {
   OPERACIONES: [['ots','Órdenes de Trabajo'],['nueva','Nueva OT'],['buzon','Buzón del Agente'],['agenda','Agenda'],['rutas','Optimizador de Rutas'],['bodega','Bodega / Repuestos']],
-  ADMINISTRACION: [['maestros','Maestros y Parámetros'],['productos','Productos y Garantías'],['paquetes','Paquetes de Servicio'],['checklists','Checklists'],['clientes','Clientes'],['activos','Activos / Equipos'],['tecnicos','Técnicos y SSTT']],
-    FINANZAS: [['presupuestos','Presupuestos'],['red','Liquidaciones SSTT'],['bonos','Bonos']],
+  ADMINISTRACION: [['maestros','Maestros y Parámetros'],['productos','Productos y Garantías'],['paquetes','Paquetes de Servicio'],['checklists','Checklists'],['clientes','Clientes'],['activos','Activos / Equipos'],['tecnicos','Técnicos y SSTT'],['parametros','Parámetros Generales']],
+  FINANZAS: [['presupuestos','Presupuestos'],['red','Liquidaciones SSTT'],['bonos','Bonos']],
   ANALISIS: [['kpis','Dashboard KPIs'],['importar','Importar Datos'],['conectores','Conectores'],['config','Tenant y Marca'],['auditoria','Auditoría']]
 
 export default function Consola(){
@@ -182,6 +183,7 @@ export default function Consola(){
           {tab==='conectores'? <ModConectores avisar={avisar}/> : null}
           {tab==='config'? <ModConfig tenant={tenant} avisar={avisar} onTenant={setTenant}/> : null}
           {tab==='auditoria'? <ModAuditoria/> : null}
+          {tab==='parametros'? <ModParametros avisar={avisar}/> : null}
         </div></div>
       </div>
       {sel? <FichaOT ot={sel} cust={cust} avisar={avisar} onClose={function(){ setSel(null); }} onChanged={cargar} onOpenCliente={function(cc){ setCliSel(cc); }}/> : null}
