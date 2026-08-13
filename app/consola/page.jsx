@@ -116,6 +116,8 @@ export default function Consola(){
             return <button key={c} onClick={function(){ setCat(c); setTab(CATS[c][0][0]); }} style={{padding:'9px 16px',borderRadius:999,border:cat===c?'0':'1px solid #3A4149',background:cat===c?brand:'transparent',color:cat===c?'#fff':'#E6EAEE',fontWeight:700,fontSize:13,cursor:'pointer'}}>{c}</button>;
           })}
         </nav>
+                <a href="/inventario" style={{...S.btnO(T.teal),width:'auto',marginBottom:0,padding:'8px 14px',textDecoration:'none'}}>Inventario</a>
+        <a href="/sstt" style={{...S.btnO(T.violet),width:'auto',marginBottom:0,padding:'8px 14px',textDecoration:'none'}}>Portal SSTT</a>
         <a href="/tecnico" style={{...S.btnO(T.info),width:'auto',marginBottom:0,padding:'8px 14px',textDecoration:'none'}}>Vista Técnico</a>
         <button onClick={async function(){ await supabase.auth.signOut(); router.replace('/'); }} style={{...S.btnO(T.danger),width:'auto',marginBottom:0,padding:'8px 14px'}}>Salir</button>
       </header>
