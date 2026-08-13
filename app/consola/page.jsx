@@ -25,12 +25,13 @@ import ModBodega from '../../lib/consola/mod_bodega';
 import ModRutas from '../../lib/consola/mod_rutas';
 import ModPaquetes from '../../lib/consola/mod_paquetes';
 import ModTecnicos from '../../lib/consola/mod_tecnicos';
+import ModAuditoria from '../../lib/consola/mod_auditoria';
 
 const CATS = {
   OPERACIONES: [['ots','Órdenes de Trabajo'],['nueva','Nueva OT'],['buzon','Buzón del Agente'],['agenda','Agenda'],['rutas','Optimizador de Rutas'],['bodega','Bodega / Repuestos']],
   ADMINISTRACION: [['maestros','Maestros y Parámetros'],['productos','Productos y Garantías'],['paquetes','Paquetes de Servicio'],['checklists','Checklists'],['clientes','Clientes'],['activos','Activos / Equipos'],['tecnicos','Técnicos y SSTT']],
   FINANZAS: [['presupuestos','Presupuestos'],['red','Red SAT y Liquidaciones'],['bonos','Bonos']],
-  ANALISIS: [['kpis','Dashboard KPIs'],['importar','Importar Datos'],['conectores','Conectores'],['config','Configuración']]
+  ANALISIS: [['kpis','Dashboard KPIs'],['importar','Importar Datos'],['conectores','Conectores'],['config','Configuración'],['auditoria','Auditoría']]
 };
 
 export default function Consola(){
@@ -179,6 +180,7 @@ export default function Consola(){
           {tab==='importar'? <ModImportar avisar={avisar} onOk={cargar}/> : null}
           {tab==='conectores'? <ModConectores avisar={avisar}/> : null}
           {tab==='config'? <ModConfig tenant={tenant} avisar={avisar} onTenant={setTenant}/> : null}
+          {tab==='auditoria'? <ModAuditoria/> : null}
         </div></div>
       </div>
       {sel? <FichaOT ot={sel} cust={cust} avisar={avisar} onClose={function(){ setSel(null); }} onChanged={cargar} onOpenCliente={function(cc){ setCliSel(cc); }}/> : null}
