@@ -4,8 +4,9 @@ import { supabase } from '../supabase';
 import { T, S } from '../ui';
 export default function ModAuditoria(){
   const [rep,setRep]=useState('Generando…');
+  const url=(typeof process!=='undefined'&&process.env&&process.env.NEXT_PUBLIC_SUPABASE_URL)||supabase.supabaseUrl||'n/d';
   async function auditar(){
-    const L=[];
+    const L=['WEB CONECTADA A: '+url,'---'];
     const tabs=['customers','work_orders','assets','product_families','service_types','mant_types','tech_rates','sla_matrix','warranty_rules','paquetes','checklists','checklist_blocks','presupuestos','liquidaciones','notifications','insistencias','ot_events','equipment','stock_movements','parts','regions','settings','companies','users'];
     for(const t of tabs){
       const {count,error}=await supabase.from(t).select('*',{count:'exact',head:true});
@@ -20,9 +21,10 @@ export default function ModAuditoria(){
   useEffect(()=>{ auditar(); },[]);
   return (<div style={S.card}>
     <h2 style={S.h2}>Auditoría del sistema</h2>
+    <p style={{...S.sub,marginBottom:10}}>Base a la que está conectada esta web: <b style={{color:T.brand}}>{url}</b>. Compárala con la del SQL Editor.</p>
     <div style={{display:'flex',gap:8,marginBottom:10}}>
       <button style={S.btn(T.brand)} onClick={auditar}>Re-auditar</button>
-      <button style={S.btnO(T.info)} onClick={()=>navigator.clipboard.writeText(rep)}>Copiar informe (pégamelo)</button>
+      <button style={S.btnO(T.info)} onClick={()=>navigator.clipboard.writeText(url+'\n'+rep)}>Copiar informe (pégamelo)</button>
     </div>
     <pre style={{...S.sub,whiteSpace:'pre-wrap',background:T.surface2,padding:12,borderRadius:8}}>{rep}</pre>
   </div>);
