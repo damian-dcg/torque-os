@@ -27,9 +27,11 @@ import ModPaquetes from '../../lib/consola/mod_paquetes';
 import ModTecnicos from '../../lib/consola/mod_tecnicos';
 import ModAuditoria from '../../lib/consola/mod_auditoria';
 import ModParametros from '../../lib/consola/mod_parametros';
+import ModRecepcion from '../../lib/consola/mod_recepcion';
+import ModAprobaciones from '../../lib/consola/mod_aprobaciones';
 
 const CATS = {
-  OPERACIONES: [['ots','Órdenes de Trabajo'],['nueva','Nueva OT'],['buzon','Buzón del Agente'],['agenda','Agenda'],['rutas','Optimizador de Rutas'],['bodega','Bodega / Repuestos']],
+  OPERACIONES: [['ots','Órdenes de Trabajo'],['nueva','Nueva OT'],['recepcion','Recepción y Custodia'],['aprobaciones','Aprobaciones'],,['buzon','Buzón del Agente'],['agenda','Agenda'],['rutas','Optimizador de Rutas'],['bodega','Bodega / Repuestos']],
   ADMINISTRACION: [['maestros','Maestros y Parámetros'],['productos','Productos y Garantías'],['paquetes','Paquetes de Servicio'],['checklists','Checklists'],['clientes','Clientes'],['activos','Activos / Equipos'],['tecnicos','Técnicos y SSTT'],['parametros','Parámetros Generales']],
   FINANZAS: [['presupuestos','Presupuestos'],['red','Liquidaciones SSTT'],['bonos','Bonos']],
   ANALISIS: [['kpis','Dashboard KPIs'],['importar','Importar Datos'],['conectores','Conectores'],['config','Tenant y Marca'],['auditoria','Auditoría']]
@@ -47,6 +49,7 @@ export default function Consola(){
   const [usersMap,setUsersMap]=useState({}); const [satsMap,setSatsMap]=useState({});
   const [sel,setSel]=useState(null);
   const [cliSel,setCliSel]=useState(null);
+  const [recPreset,setRecPreset]=useState(null);
   const [q,setQ]=useState(''); const [fEst,setFEst]=useState('');
   const [buzCount,setBuzCount]=useState(0);
   const router=useRouter();
@@ -169,6 +172,8 @@ export default function Consola(){
           {tab==='agenda'? <ModAgenda avisar={avisar}/> : null}
           {tab==='rutas'? <ModRutas avisar={avisar}/> : null}
           {tab==='nueva'? <ModNuevaOT avisar={avisar} onOk={cargar}/> : null}
+          {tab==='recepcion'? <ModRecepcion avisar={avisar} otPreset={recPreset}/> : null}
+          {tab==='aprobaciones'? <ModAprobaciones avisar={avisar}/> : null}
           {tab==='bodega'? <ModBodega avisar={avisar}/> : null}
           {tab==='productos'? <ModProductos avisar={avisar}/> : null}
           {tab==='checklists'? <ModChecklists avisar={avisar}/> : null}
