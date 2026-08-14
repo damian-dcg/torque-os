@@ -35,12 +35,15 @@ import ModInventario from '../../lib/consola/mod_inventario';
 import ModCompras from '../../lib/consola/mod_compras';
 import ModCaja from '../../lib/consola/mod_caja';
 import ModGarantias from '../../lib/consola/mod_garantias';
+import ModCalidad from '../../lib/consola/mod_calidad';
+import ModRrhh from '../../lib/consola/mod_rrhh';
+import ModBi from '../../lib/consola/mod_bi';
 
 const CATS = {
   OPERACIONES: [['ots','Órdenes de Trabajo'],['nueva','Nueva OT'],['recepcion','Recepción y Custodia'],['aprobaciones','Aprobaciones'],['desarme','Desarme Autorizado'],['recuperacion','Recuperación y Stock'],['inventario','Inventario Avanzado'],['compras','Compras y Proveedores'],['garantias','Garantías · RMA · Recalls'],['buzon','Buzón del Agente'],['agenda','Agenda'],['rutas','Optimizador de Rutas'],['bodega','Bodega / Repuestos']],
-  ADMINISTRACION: [['maestros','Maestros y Parámetros'],['productos','Productos y Garantías'],['paquetes','Paquetes de Servicio'],['checklists','Checklists'],['clientes','Clientes'],['activos','Activos / Equipos'],['tecnicos','Técnicos y SSTT'],['parametros','Parámetros Generales']],
+  ADMINISTRACION: [['maestros','Maestros y Parámetros'],['productos','Productos y Garantías'],['paquetes','Paquetes de Servicio'],['checklists','Checklists'],['clientes','Clientes'],['activos','Activos / Equipos'],['tecnicos','Técnicos y SSTT'],['parametros','Parámetros Generales'],['calidad','Calidad y HSE'],['rrhh','RRHH']],
   FINANZAS: [['caja','Caja y Facturación'],['presupuestos','Presupuestos'],['red','Liquidaciones SSTT'],['bonos','Bonos']],
-  ANALISIS: [['kpis','Dashboard KPIs'],['importar','Importar Datos'],['conectores','Conectores'],['config','Tenant y Marca'],['auditoria','Auditoría']]
+  ANALISIS: [['kpis','Dashboard KPIs'],['bi','BI Avanzado'],['importar','Importar Datos'],['conectores','Conectores'],['config','Tenant y Marca'],['auditoria','Auditoría']]
 };
 
 export default function Consola(){
@@ -140,6 +143,7 @@ export default function Consola(){
         </aside>
         <div style={{flex:1,minWidth:0}}><div style={S.wrap}>
           {tab==='kpis'? <ModKpis/> : null}
+          {tab==='bi'? <ModBi/> : null}
           {tab==='maestros'? <div>
             <TablaPro titulo="Familias de producto" rows={fams} campos={[['code','Código'],['name','Nombre']]} onEdit={function(r,k,v){ save('product_families',{[k]:v},r.id); }} onAdd={function(f){ save('product_families',f); }} onDel={function(r){ remove('product_families',r.id); }}/>
             <TablaPro titulo="Tipos de servicio" rows={servs} campos={[['code','Código'],['nombre','Nombre'],['base_price','Precio base','num']]} onEdit={function(r,k,v){ save('service_types',{[k]:v},r.id); }} onAdd={function(f){ save('service_types',f); }} onDel={function(r){ remove('service_types',r.id); }}/>
@@ -179,6 +183,8 @@ export default function Consola(){
           {tab==='inventario'? <ModInventario avisar={avisar}/> : null}
           {tab==='compras'? <ModCompras avisar={avisar}/> : null}
           {tab==='garantias'? <ModGarantias avisar={avisar}/> : null}
+          {tab==='calidad'? <ModCalidad avisar={avisar}/> : null}
+          {tab==='rrhh'? <ModRrhh avisar={avisar}/> : null}
           {tab==='buzon'? <Buzon ots={ots} cust={cust} onOpen={function(o){ setSel(o); }} onChanged={cargar}/> : null}
           {tab==='agenda'? <ModAgenda avisar={avisar}/> : null}
           {tab==='rutas'? <ModRutas avisar={avisar}/> : null}
