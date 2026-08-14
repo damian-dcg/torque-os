@@ -25,16 +25,17 @@ import ModBodega from '../../lib/consola/mod_bodega';
 import ModRutas from '../../lib/consola/mod_rutas';
 import ModPaquetes from '../../lib/consola/mod_paquetes';
 import ModTecnicos from '../../lib/consola/mod_tecnicos';
-import ModAuditoria from '../../lib/consola/mod_auditoria';
 import ModParametros from '../../lib/consola/mod_parametros';
+import ModAuditoria from '../../lib/consola/mod_auditoria';
 import ModRecepcion from '../../lib/consola/mod_recepcion';
 import ModAprobaciones from '../../lib/consola/mod_aprobaciones';
 
 const CATS = {
-  OPERACIONES: [['ots','Órdenes de Trabajo'],['nueva','Nueva OT'],['recepcion','Recepción y Custodia'],['aprobaciones','Aprobaciones'],,['buzon','Buzón del Agente'],['agenda','Agenda'],['rutas','Optimizador de Rutas'],['bodega','Bodega / Repuestos']],
+  OPERACIONES: [['ots','Órdenes de Trabajo'],['nueva','Nueva OT'],['recepcion','Recepción y Custodia'],['aprobaciones','Aprobaciones'],['buzon','Buzón del Agente'],['agenda','Agenda'],['rutas','Optimizador de Rutas'],['bodega','Bodega / Repuestos']],
   ADMINISTRACION: [['maestros','Maestros y Parámetros'],['productos','Productos y Garantías'],['paquetes','Paquetes de Servicio'],['checklists','Checklists'],['clientes','Clientes'],['activos','Activos / Equipos'],['tecnicos','Técnicos y SSTT'],['parametros','Parámetros Generales']],
   FINANZAS: [['presupuestos','Presupuestos'],['red','Liquidaciones SSTT'],['bonos','Bonos']],
   ANALISIS: [['kpis','Dashboard KPIs'],['importar','Importar Datos'],['conectores','Conectores'],['config','Tenant y Marca'],['auditoria','Auditoría']]
+};
 
 export default function Consola(){
   const [me,setMe]=useState(null);
@@ -119,7 +120,7 @@ export default function Consola(){
             return <button key={c} onClick={function(){ setCat(c); setTab(CATS[c][0][0]); }} style={{padding:'9px 16px',borderRadius:999,border:cat===c?'0':'1px solid #3A4149',background:cat===c?brand:'transparent',color:cat===c?'#fff':'#E6EAEE',fontWeight:700,fontSize:13,cursor:'pointer'}}>{c}</button>;
           })}
         </nav>
-                <a href="/inventario" style={{...S.btnO(T.teal),width:'auto',marginBottom:0,padding:'8px 14px',textDecoration:'none'}}>Inventario</a>
+        <a href="/inventario" style={{...S.btnO(T.teal),width:'auto',marginBottom:0,padding:'8px 14px',textDecoration:'none'}}>Inventario</a>
         <a href="/sstt" style={{...S.btnO(T.violet),width:'auto',marginBottom:0,padding:'8px 14px',textDecoration:'none'}}>Portal SSTT</a>
         <a href="/tecnico" style={{...S.btnO(T.info),width:'auto',marginBottom:0,padding:'8px 14px',textDecoration:'none'}}>Vista Técnico</a>
         <button onClick={async function(){ await supabase.auth.signOut(); router.replace('/'); }} style={{...S.btnO(T.danger),width:'auto',marginBottom:0,padding:'8px 14px'}}>Salir</button>
@@ -168,19 +169,20 @@ export default function Consola(){
             </table>
             {visibles.length===0? <p style={{...S.sub,padding:12}}>Sin OTs operativas. Las solicitudes nuevas sin asignar están en el Buzón.</p> : null}</div>
           </div> : null}
+          {tab==='recepcion'? <ModRecepcion avisar={avisar} otPreset={recPreset}/> : null}
+          {tab==='aprobaciones'? <ModAprobaciones avisar={avisar}/> : null}
           {tab==='buzon'? <Buzon ots={ots} cust={cust} onOpen={function(o){ setSel(o); }} onChanged={cargar}/> : null}
           {tab==='agenda'? <ModAgenda avisar={avisar}/> : null}
           {tab==='rutas'? <ModRutas avisar={avisar}/> : null}
           {tab==='nueva'? <ModNuevaOT avisar={avisar} onOk={cargar}/> : null}
-          {tab==='recepcion'? <ModRecepcion avisar={avisar} otPreset={recPreset}/> : null}
-          {tab==='aprobaciones'? <ModAprobaciones avisar={avisar}/> : null}
           {tab==='bodega'? <ModBodega avisar={avisar}/> : null}
           {tab==='productos'? <ModProductos avisar={avisar}/> : null}
+          {tab==='paquetes'? <ModPaquetes avisar={avisar}/> : null}
           {tab==='checklists'? <ModChecklists avisar={avisar}/> : null}
           {tab==='clientes'? <ModClientes avisar={avisar} onOpenCliente={function(cc){ setCliSel(cc); }}/> : null}
           {tab==='activos'? <ModActivos avisar={avisar}/> : null}
           {tab==='tecnicos'? <ModTecnicos avisar={avisar}/> : null}
-          {tab==='paquetes'? <ModPaquetes avisar={avisar}/> : null}
+          {tab==='parametros'? <ModParametros avisar={avisar}/> : null}
           {tab==='presupuestos'? <ModPresupuestos avisar={avisar} tenant={tenant}/> : null}
           {tab==='red'? <ModRed avisar={avisar}/> : null}
           {tab==='bonos'? <ModBonos avisar={avisar}/> : null}
@@ -188,10 +190,9 @@ export default function Consola(){
           {tab==='conectores'? <ModConectores avisar={avisar}/> : null}
           {tab==='config'? <ModConfig tenant={tenant} avisar={avisar} onTenant={setTenant}/> : null}
           {tab==='auditoria'? <ModAuditoria/> : null}
-          {tab==='parametros'? <ModParametros avisar={avisar}/> : null}
         </div></div>
       </div>
-      {sel? <FichaOT onRecepcion={function(o){ setRecPreset(o); setSel(null); setTab('recepcion'); }} ot={sel} cust={cust} avisar={avisar} onClose={function(){ setSel(null); }} onChanged={cargar} onOpenCliente={function(cc){ setCliSel(cc); }}/> : null}
+      {sel? <FichaOT ot={sel} cust={cust} avisar={avisar} onClose={function(){ setSel(null); }} onChanged={cargar} onOpenCliente={function(cc){ setCliSel(cc); }} onRecepcion={function(o){ setRecPreset(o); setSel(null); setTab('recepcion'); }}/> : null}
       {cliSel? <FichaCliente cliente={cliSel} onClose={function(){ setCliSel(null); }} onOpenOT={function(o){ setSel(o); }}/> : null}
     </main>);
 }
