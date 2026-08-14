@@ -126,6 +126,22 @@ export default function ModDesarme(props){
         {sessions.length===0? <p style={S.sub}>Sin sesiones. Aprueba una solicitud e inicia la sesión.</p> : null}
       </div> : null}
 
+  function imprimir(r){
+    var o=otDe(r.ot_id); var c=o?(cust[o.customer_id]||{}):{};
+    var qr='https://api.qrserver.com/v1/create-qr-code/?size=120x120&data='+encodeURIComponent('TORQUE-OS|DESARME-'+r.id+'|OT-'+(o?o.ot_number:''));
+    var w=window.open('','_blank');
+    w.document.write('<html><head><title>Solicitud Desarme #'+r.id+'</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px;font-size:12px;text-align:left}</style></head><body>'
+      +'<h2>Solicitud de Desarme #'+r.id+'</h2><img src="'+qr+'"/>'
+      +'<table><tr><th>OT</th><td>OT-'+(o?o.ot_number:'')+'</td><th>Cliente</th><td>'+(c.nombre||'')+'</td></tr>'
+      +'<tr><th>Motivo</th><td>'+(r.reason||'')+'</td><th>Alcance</th><td>'+r.scope+'</td></tr>'
+      +'<tr><th>Costo est.</th><td>'+fmtCLP(r.estimated_cost)+'</td><th>Horas est.</th><td>'+r.estimated_hours+'</td></tr>'
+      +'<tr><th>Riesgos</th><td colspan="3">'+(r.risk_notes||'—')+'</td></tr></table>'
+      +'<p>Requiere aprobación de cliente: '+(r.requires_customer_approval?'Sí':'No')+'.</p>'
+      +'<p>Firma cliente: ____________ &nbsp; Firma responsable: ____________</p>'
+      +'<script>window.print()</script></body></html>');
+    w.document.close();
+  }
+      
       {tab==='piezas'? <div style={S.card}>
         <h2 style={S.h2}>Piezas extraídas ({components.length})</h2>
         <table style={{width:'100%',borderCollapse:'collapse'}}>
