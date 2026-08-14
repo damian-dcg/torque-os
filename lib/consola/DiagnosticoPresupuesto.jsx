@@ -40,8 +40,16 @@ export default function DiagnosticoPresupuesto(props){
     avisar('✅ Presupuesto guardado',T.ok); onChanged();
     var r=await supabase.from('presupuestos').select('*').eq('ot_id',ot.id).limit(1); setPres((r.data||[])[0]||null);
   }
-  function enviar(){ window.open('https://wa.me/?text='+encodeURIComponent('Presupuesto OT-'+ot.ot_number+' por '+fmtCLP(total)+'. ¿Aprueba el servicio? Responda SI/NO.'),'_blank'); if(pres) supabase.from('presupuestos').update({estado:'enviado'}).eq('id',pres.id); avisar('📤 Enviado a aprobación',T.info);if(pres) await supabase.from('approvals').insert([{entity_type:'presupuesto',entity_id:pres.id,approver_type:'cliente',status:'pending'}]); }
-  async function resolver(e)     await supabase.from('approvals').update({status:e==='aceptado'?'approved':'rejected',decided_at:new Date().toISOString()}).eq('entity_id',pres.id).eq('entity_type','presupuesto');{ await supabase.from('presupuestos').update({estado:e}).eq('id',pres.id); avisar('✅ Presupuesto '+e,T.ok); onChanged(); }
+  async function enviar(){
+    window.open('https://wa.me/?text='+encodeURIComponent('Presupuesto OT-'+ot.ot_number+' por '+fmtCLP(total)+'. ¿Aprueba el servicio? Responda SI/NO.'),'_blank');
+    if(pres){ await supabase.from('presupuestos').update({estado:'enviado'}).eq('id',pres.id); await supabase.from('approvals').insert([{entity_type:'presupuesto',entity_id:pres.id,approver_type:'cliente',status:'pending'}]); }
+    avisar('📤 Enviado a aprobación',T.info);
+  }
+  async function resolver(e){
+    await supabase.from('approvals').update({status:e==='aceptado'?'approved':'rejected',decided_at:new Date().toISOString()}).eq('entity_id',pres.id).eq('entity_type','presupuesto');
+    await supabase.from('presupuestos').update({estado:e}).eq('id',pres.id);
+    avisar('✅ Presupuesto '+e,T.ok); onChanged();
+  }
   return (
     <div style={{background:T.surface2,borderRadius:10,padding:12,marginBottom:12}}>
       <h3 style={{...S.h2,margin:'0 0 6px'}}>🩺 Diagnóstico técnico</h3>
