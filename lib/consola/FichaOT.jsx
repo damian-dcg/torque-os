@@ -104,6 +104,19 @@ export default function FichaOT(props){
             <button style={{...S.btnO(T.warn),width:'auto',marginBottom:0}} onClick={verMapa}>🗺 Mapa</button>
             <button style={{...S.btnO(T.violet),width:'auto',marginBottom:0}} onClick={function(){ if(props.onOpenCliente) props.onOpenCliente(c); }}>📇 Ficha cliente</button>
                         <button style={{...S.btnO(T.teal),width:'auto',marginBottom:0}} onClick={function(){ if(props.onRecepcion) props.onRecepcion(ot); }}>📥 Recepción</button>
+                        <button style={{...S.btnO(T.warn),width:'auto',marginBottom:0}} onClick={async function(){
+              var reason=window.prompt('Motivo del desarme:'); if(!reason)return;
+              var scope=window.prompt('Alcance (parcial/total):')||'total';
+              var cost=Number(window.prompt('Costo estimado ($):')||0);
+              var hours=Number(window.prompt('Horas estimadas:')||1);
+              var risk=window.prompt('Riesgos (opcional):')||'';
+              var req=await supabase.from('disassembly_requests').insert([{ot_id:ot.id,asset_id:ot.asset_id||null,requested_by:null,reason:reason,scope:scope,estimated_cost:cost,estimated_hours:hours,risk_notes:risk,status:'submitted',requires_customer_approval:true}]).select();
+              if(req.data&&req.data[0]){
+                await supabase.from('approvals').insert([{entity_type:'desarme',entity_id:req.data[0].id,approver_type:'cliente',status:'pending'}]);
+                avisar('✅ Solicitud de desarme creada. Espera aprobación en "Aprobaciones".',T.ok);
+                onChanged();
+              }
+            }}>🔧 Solicitar desarme</button>
           </div>
         </div>
 
