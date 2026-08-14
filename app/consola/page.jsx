@@ -88,16 +88,6 @@ export default function Consola(){
     ]);
     setBuzCount(r[0].filter(esPendiente).length+(extra[0].data||[]).length+(extra[1].data||[]).length);
   }
-  function exportExcel(){
-    var head=['ID OT','OT','Fecha Ingreso','Cliente','RUT','Tipo Equipo','Tipo Servicio','Técnico/SSTT','Estado','Fecha Prog.','Cantidad','Venta Total','Costo Total','Margen','%Margen','FTF','Nota','Nivel','Detalle','Modelo'];
-    var rows=ots.map(function(o){
-      var c=cust[o.customer_id]||{}; var k=o.kpi||{};
-      return [o.ext_id||('OT-'+o.ot_number),o.ot_number,o.created_at||'',c.nombre||'',c.rut||'',k.tipo_equipo||'',o.tipo||'',tecName(o),o.estado||'',o.fecha_programada||'',o.cantidad_unidades||1,k.venta_total||0,k.costo_total||0,k.margen||0,k.pct_margen||'',k.ftf||'',k.nota||'',k.nivel||'',String(o.descripcion||'').replace(/[;\n]/g,','),String(o.modelo_limpio||'').replace(/[;\n]/g,',')].join(';');
-    });
-    var a=document.createElement('a');
-    a.href=URL.createObjectURL(new Blob(['\uFEFF'+head.join(';')+'\n'+rows.join('\n')],{type:'text/csv'}));
-    a.download='TORQUE-OS_base_completa.csv'; a.click();
-  }
   useEffect(function(){
     supabase.auth.getSession().then(async function(res){
       if(!res.data.session){ router.replace('/'); return; }
@@ -155,28 +145,7 @@ export default function Consola(){
             <TablaPro titulo="SLA (días)" rows={sla} campos={[['tipo_servicio','Servicio'],['tipo_equipo','Equipo'],['dias','Días','num']]} onEdit={function(r,k,v){ save('sla_matrix',{[k]:v},r.id); }} onAdd={function(f){ save('sla_matrix',f); }} onDel={function(r){ remove('sla_matrix',r.id); }}/>
           </div> : null}
           {tab==='ots'? <div>
-            <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
-              <input style={{...S.input,flex:2,minWidth:200,marginBottom:0}} placeholder="Buscar OT o cliente…" value={q} onChange={function(e){ setQ(e.target.value); }}/>
-              <select style={{...S.input,flex:1,minWidth:160,marginBottom:0}} value={fEst} onChange={function(e){ setFEst(e.target.value); }}>
-                <option value="">Todos los estados</option>
-                {['Asignada','En Ruta','Llegada','Trabajando','Esperando Repuesto','Revisión QA','Cerrada','Rechazada'].map(function(s){ return <option key={s}>{s}</option>; })}
-              </select>
-              <button style={{...S.btnO(T.ok),width:'auto',marginBottom:0}} onClick={exportExcel}>⬇ Excel completo</button>
-            </div>
-            <div style={S.card}><table style={{width:'100%',borderCollapse:'collapse'}}>
-              <thead><tr><th style={S.th}>OT</th><th style={S.th}>Cliente</th><th style={S.th}>Tipo</th><th style={S.th}>Técnico/SSTT</th><th style={S.th}>Fecha</th><th style={S.th}>Estado</th></tr></thead>
-              <tbody>{visibles.slice(0,150).map(function(o){
-                return <tr key={o.id} onClick={function(){ setSel(o); }} style={{cursor:'pointer'}}>
-                  <td style={{...S.td,color:brand,fontWeight:700}}>{o.ext_id||('OT-'+o.ot_number)}</td>
-                  <td style={S.td}>{(cust[o.customer_id]||{}).nombre||'—'}</td>
-                  <td style={S.td}>{o.tipo}</td>
-                  <td style={S.td}>{tecName(o)}</td>
-                  <td style={S.td}>{o.fecha_programada||'—'}</td>
-                  <td style={S.td}><span style={S.pill(estColor(o.estado))}>{o.estado}</span></td>
-                </tr>;
-              })}</tbody>
-            </table>
-            {visibles.length===0? <p style={{...S.sub,padding:12}}>Sin OTs operativas. Las solicitudes nuevas sin asignar están en el Buzón.</p> : null}</div>
+            <div style={{...S.sub,marginBottom:8}}>Para el Excel de base completa usa ANALISIS → Exportar Base.</div>
           </div> : null}
           {tab==='recepcion'? <ModRecepcion avisar={avisar} otPreset={recPreset}/> : null}
           {tab==='aprobaciones'? <ModAprobaciones avisar={avisar}/> : null}
