@@ -31,9 +31,10 @@ import ModRecepcion from '../../lib/consola/mod_recepcion';
 import ModAprobaciones from '../../lib/consola/mod_aprobaciones';
 import ModDesarme from '../../lib/consola/mod_desarme';
 import ModRecuperacion from '../../lib/consola/mod_recuperacion';
+import ModInventario from '../../lib/consola/mod_inventario';
 
 const CATS = {
-  OPERACIONES: [['ots','Órdenes de Trabajo'],['nueva','Nueva OT'],['recepcion','Recepción y Custodia'],['aprobaciones','Aprobaciones'],['desarme','Desarme Autorizado'],['recuperacion','Recuperación y Stock'],['buzon','Buzón del Agente'],['agenda','Agenda'],['rutas','Optimizador de Rutas'],['bodega','Bodega / Repuestos']],
+  OPERACIONES: [['ots','Órdenes de Trabajo'],['nueva','Nueva OT'],['recepcion','Recepción y Custodia'],['aprobaciones','Aprobaciones'],['desarme','Desarme Autorizado'],['recuperacion','Recuperación y Stock'],['inventario','Inventario Avanzado'],['buzon','Buzón del Agente'],['agenda','Agenda'],['rutas','Optimizador de Rutas'],['bodega','Bodega / Repuestos']],
   ADMINISTRACION: [['maestros','Maestros y Parámetros'],['productos','Productos y Garantías'],['paquetes','Paquetes de Servicio'],['checklists','Checklists'],['clientes','Clientes'],['activos','Activos / Equipos'],['tecnicos','Técnicos y SSTT'],['parametros','Parámetros Generales']],
   FINANZAS: [['presupuestos','Presupuestos'],['red','Liquidaciones SSTT'],['bonos','Bonos']],
   ANALISIS: [['kpis','Dashboard KPIs'],['importar','Importar Datos'],['conectores','Conectores'],['config','Tenant y Marca'],['auditoria','Auditoría']]
@@ -172,6 +173,7 @@ export default function Consola(){
           {tab==='aprobaciones'? <ModAprobaciones avisar={avisar}/> : null}
           {tab==='desarme'? <ModDesarme avisar={avisar}/> : null}
           {tab==='recuperacion'? <ModRecuperacion avisar={avisar}/> : null}
+          {tab==='inventario'? <ModInventario avisar={avisar}/> : null}
           {tab==='buzon'? <Buzon ots={ots} cust={cust} onOpen={function(o){ setSel(o); }} onChanged={cargar}/> : null}
           {tab==='agenda'? <ModAgenda avisar={avisar}/> : null}
           {tab==='rutas'? <ModRutas avisar={avisar}/> : null}
