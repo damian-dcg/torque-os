@@ -48,7 +48,6 @@ export default function ModImportar(props){
     setLog('Filas: '+rows.length+'. Creando clientes…');
     var cmap={};
     rows.forEach(function(r){ var rut=normRut(C(r,'rut',3)||C(r,'rutl',4)); var nom=C(r,'cli',2)||'Cliente'; var k=rut||('N'+nom); if(k&&!cmap[k])cmap[k]={rut:rut||null,nombre:nom}; });
-    var seen={}; ots=ots.filter(function(o){ if(seen[o.ext_id]) return false; seen[o.ext_id]=true; return true; });
     var ex=await supabase.from('customers').select('id,rut,nombre').limit(5000);
     var byRut={},byName={};
     (ex.data||[]).forEach(function(c){ if(c.rut)byRut[normRut(c.rut)]=c.id; byName[String(c.nombre||'').toUpperCase()]=c.id; });
