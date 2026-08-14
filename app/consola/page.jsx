@@ -191,7 +191,7 @@ export default function Consola(){
           {tab==='parametros'? <ModParametros avisar={avisar}/> : null}
         </div></div>
       </div>
-      {sel? <FichaOT ot={sel} cust={cust} avisar={avisar} onClose={function(){ setSel(null); }} onChanged={cargar} onOpenCliente={function(cc){ setCliSel(cc); }}/> : null}
+      {sel? <FichaOT onRecepcion={function(o){ setRecPreset(o); setSel(null); setTab('recepcion'); }} ot={sel} cust={cust} avisar={avisar} onClose={function(){ setSel(null); }} onChanged={cargar} onOpenCliente={function(cc){ setCliSel(cc); }}/> : null}
       {cliSel? <FichaCliente cliente={cliSel} onClose={function(){ setCliSel(null); }} onOpenOT={function(o){ setSel(o); }}/> : null}
     </main>);
 }
