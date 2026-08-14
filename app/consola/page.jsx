@@ -185,8 +185,6 @@ export default function Consola(){
           {tab==='inventario'? <ModInventario avisar={avisar}/> : null}
           {tab==='compras'? <ModCompras avisar={avisar}/> : null}
           {tab==='garantias'? <ModGarantias avisar={avisar}/> : null}
-          {tab==='calidad'? <ModCalidad avisar={avisar}/> : null}
-          {tab==='rrhh'? <ModRrhh avisar={avisar}/> : null}
           {tab==='buzon'? <Buzon ots={ots} cust={cust} onOpen={function(o){ setSel(o); }} onChanged={cargar}/> : null}
           {tab==='agenda'? <ModAgenda avisar={avisar}/> : null}
           {tab==='rutas'? <ModRutas avisar={avisar}/> : null}
@@ -199,6 +197,8 @@ export default function Consola(){
           {tab==='activos'? <ModActivos avisar={avisar}/> : null}
           {tab==='tecnicos'? <ModTecnicos avisar={avisar}/> : null}
           {tab==='parametros'? <ModParametros avisar={avisar}/> : null}
+          {tab==='calidad'? <ModCalidad avisar={avisar}/> : null}
+          {tab==='rrhh'? <ModRrhh avisar={avisar}/> : null}
           {tab==='caja'? <ModCaja avisar={avisar} me={me}/> : null}
           {tab==='presupuestos'? <ModPresupuestos avisar={avisar} tenant={tenant}/> : null}
           {tab==='red'? <ModRed avisar={avisar}/> : null}
