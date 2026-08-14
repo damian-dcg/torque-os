@@ -6,15 +6,10 @@ import Mapa from './Mapa';
 import { geocode } from './geo';
 import HistorialActivo from './HistorialActivo';
 import DiagnosticoPresupuesto from './DiagnosticoPresupuesto';
-
 export default function FichaOT(props){
-  var ot=props.ot;
-  var cust=props.cust||{};
-  var avisar=props.avisar||function(){};
-  var onClose=props.onClose||function(){};
-  var onChanged=props.onChanged||function(){};
-  var c=cust[ot.customer_id]||{};
-  var dp=ot.datos_portal||{};
+  var ot=props.ot; var cust=props.cust||{}; var avisar=props.avisar||function(){};
+  var onClose=props.onClose||function(){}; var onChanged=props.onChanged||function(){};
+  var c=cust[ot.customer_id]||{}; var dp=ot.datos_portal||{};
   var s1=useState([]),ins=s1[0],setIns=s1[1];
   var s2=useState([]),evs=s2[0],setEvs=s2[1];
   var s3=useState([]),users=s3[0],setUsers=s3[1];
@@ -44,8 +39,7 @@ export default function FichaOT(props){
   }
   async function cambiar(estado){
     var d=await supabase.rpc('cambiar_estado_ot',{p_ot_id:ot.id,p_estado:estado});
-    if(d.error) avisar('⛗ '+d.error.message,T.danger);
-    else { avisar('✅ Estado: '+estado,T.ok); onChanged(); onClose(); }
+    if(d.error) avisar('⛗ '+d.error.message,T.danger); else { avisar('✅ Estado: '+estado,T.ok); onChanged(); onClose(); }
   }
   async function asignar(){
     if(!asig.id){ avisar('⛗ Elige técnico o SSTT',T.danger); return; }
@@ -53,8 +47,7 @@ export default function FichaOT(props){
     if(asig.tipo==='tec') patch.asignado_user_id=Number(asig.id); else patch.asignado_company_id=Number(asig.id);
     if(fecha) patch.fecha_programada=fecha;
     var e=await supabase.from('work_orders').update(patch).eq('id',ot.id);
-    if(e.error) avisar('⛗ '+e.error.message,T.danger);
-    else { avisar('✅ OT asignada',T.ok); onChanged(); onClose(); }
+    if(e.error) avisar('⛗ '+e.error.message,T.danger); else { avisar('✅ OT asignada',T.ok); onChanged(); onClose(); }
   }
   async function programar(){
     if(!fecha){ avisar('⛗ Elige fecha',T.danger); return; }
@@ -64,23 +57,21 @@ export default function FichaOT(props){
   async function verMapa(){
     var dir=ot.direccion||c.direccion||'';
     if(!dir){ avisar('⛗ Sin dirección',T.danger); return; }
-    var g=await geocode(dir);
-    setMapMk(g?[{lat:g.lat,lng:g.lng,popup:dir}]:[]);
-    setMapOpen(true);
+    var g=await geocode(dir); setMapMk(g?[{lat:g.lat,lng:g.lng,popup:dir}]:[]); setMapOpen(true);
   }
   function gmail(){
     window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+(c.email||'')+'&su='+encodeURIComponent('OT-'+ot.ot_number+' · Bianchi Servicio Técnico')+'&body='+encodeURIComponent('Hola '+(c.nombre||'')+',\nSu orden OT-'+ot.ot_number+' ('+ot.tipo+') se encuentra en estado: '+ot.estado+'.\nLe contactaremos a la brevedad.'),'_blank');
   }
   function pdf(){
     var w=window.open('','_blank');
-    var html='<html><head><title>OT-'+ot.ot_number+'</title><style>body{font-family:Arial;padding:24px;color:#111}table{width:100%;border-collapse:collapse;margin:10px 0}td,th{border:1px solid #ccc;padding:6px;font-size:12px;text-align:left}</style></head><body>'
+    w.document.write('<html><head><title>OT-'+ot.ot_number+'</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px;font-size:12px;text-align:left}</style></head><body>'
       +'<h2>OT-'+ot.ot_number+' · '+ot.tipo+' · '+ot.estado+'</h2>'
       +'<table><tr><th>Cliente</th><td>'+(c.nombre||'')+'</td><th>RUT</th><td>'+(c.rut||'')+'</td></tr>'
       +'<tr><th>Teléfono</th><td>'+(c.telefono||'')+'</td><th>Dirección</th><td>'+(ot.direccion||c.direccion||'')+'</td></tr>'
       +'<tr><th>Producto</th><td>'+(dp.producto||'')+' '+(dp.modelo||'')+'</td><th>Boleta</th><td>'+(dp.boleta||'')+'</td></tr>'
       +'<tr><th>Asignado a</th><td>'+(nombreAsignado()||'—')+'</td><th>Fecha</th><td>'+(ot.fecha_programada||'—')+'</td></tr></table>'
-      +'<p>'+(ot.descripcion||'')+'</p><script>window.print()</script></body></html>';
-    w.document.write(html); w.document.close();
+      +'<p>'+(ot.descripcion||'')+'</p><script>window.print()</script></body></html>');
+    w.document.close();
   }
   var abierta=['Ingresada','Asignada','Aceptada','En Ruta','Llegada','Trabajando','Esperando Repuesto'].indexOf(ot.estado)>=0;
   return (
@@ -92,7 +83,6 @@ export default function FichaOT(props){
         </div>
         <p style={{...S.sub,margin:'6px 0'}}>{c.nombre||'—'} · {ot.tipo} · {fmtFecha(ot.created_at)} · canal {ot.canal}</p>
         <p style={{...S.sub,margin:'0 0 6px'}}>Asignada a: <b>{nombreAsignado()||'— sin asignar —'}</b> · Fecha: <b>{ot.fecha_programada||'—'}</b> · {ot.modalidad||'taller'}</p>
-
         <div style={{background:T.surface2,borderRadius:10,padding:12,marginBottom:12}}>
           <h3 style={{...S.h2,margin:'0 0 6px'}}>Cliente</h3>
           <p style={{margin:'2px 0',fontSize:14}}>{c.nombre} · RUT {c.rut||'—'}</p>
@@ -103,8 +93,8 @@ export default function FichaOT(props){
             <a style={{...S.btnO(T.ok),width:'auto',marginBottom:0,textDecoration:'none'}} href={'https://wa.me/'+String(c.telefono||'').replace(/[^\d+]/g,'')} target="_blank">💬 WhatsApp</a>
             <button style={{...S.btnO(T.warn),width:'auto',marginBottom:0}} onClick={verMapa}>🗺 Mapa</button>
             <button style={{...S.btnO(T.violet),width:'auto',marginBottom:0}} onClick={function(){ if(props.onOpenCliente) props.onOpenCliente(c); }}>📇 Ficha cliente</button>
-                        <button style={{...S.btnO(T.teal),width:'auto',marginBottom:0}} onClick={function(){ if(props.onRecepcion) props.onRecepcion(ot); }}>📥 Recepción</button>
-                        <button style={{...S.btnO(T.warn),width:'auto',marginBottom:0}} onClick={async function(){
+            <button style={{...S.btnO(T.teal),width:'auto',marginBottom:0}} onClick={function(){ if(props.onRecepcion) props.onRecepcion(ot); }}>📥 Recepción</button>
+            <button style={{...S.btnO(T.warn),width:'auto',marginBottom:0}} onClick={async function(){
               var reason=window.prompt('Motivo del desarme:'); if(!reason)return;
               var scope=window.prompt('Alcance (parcial/total):')||'total';
               var cost=Number(window.prompt('Costo estimado ($):')||0);
@@ -113,23 +103,19 @@ export default function FichaOT(props){
               var req=await supabase.from('disassembly_requests').insert([{ot_id:ot.id,asset_id:ot.asset_id||null,requested_by:null,reason:reason,scope:scope,estimated_cost:cost,estimated_hours:hours,risk_notes:risk,status:'submitted',requires_customer_approval:true}]).select();
               if(req.data&&req.data[0]){
                 await supabase.from('approvals').insert([{entity_type:'desarme',entity_id:req.data[0].id,approver_type:'cliente',status:'pending'}]);
-                avisar('✅ Solicitud de desarme creada. Espera aprobación en "Aprobaciones".',T.ok);
-                onChanged();
+                avisar('✅ Solicitud de desarme creada. Espera aprobación.',T.ok); onChanged();
               }
             }}>🔧 Solicitar desarme</button>
           </div>
         </div>
-
         <div style={{background:T.surface2,borderRadius:10,padding:12,marginBottom:12}}>
           <h3 style={{...S.h2,margin:'0 0 6px'}}>Producto y compra</h3>
           <p style={{margin:'2px 0',fontSize:14}}><b>{dp.producto||'—'}</b> · {dp.modelo||ot.modelo_limpio||'—'}</p>
           <p style={{margin:'2px 0',fontSize:14}}>Boleta {dp.boleta||'—'} · Compra {dp.fecha_compra||'—'} · Tienda {dp.tienda||'—'}</p>
           {dp.boleta_url? <a style={{...S.btnO(T.violet),width:'auto',marginBottom:0,textDecoration:'none'}} href={dp.boleta_url} target="_blank">🧾 Ver boleta adjunta</a> : <p style={{...S.sub,margin:'4px 0'}}>Sin boleta adjunta.</p>}
         </div>
-
         <HistorialActivo customer_id={ot.customer_id} ot_id={ot.id}/>
         <DiagnosticoPresupuesto ot={ot} avisar={avisar} onChanged={onChanged}/>
-
         <div style={{background:T.surface2,borderRadius:10,padding:12,marginBottom:12}}>
           <h3 style={{...S.h2,margin:'0 0 6px'}}>Gestión</h3>
           {abierta? <div>
@@ -152,7 +138,6 @@ export default function FichaOT(props){
             </div>
           </div> : <p style={{...S.sub,margin:0}}>OT en estado {ot.estado} (sin acciones de asignación).</p>}
         </div>
-
         <div style={{marginBottom:12}}>
           <h3 style={S.h2}>Insistencias del cliente ({ins.length})</h3>
           {ins.map(function(i){ return <p key={i.id} style={{fontSize:13,margin:'4px 0'}}>• {fmtFecha(i.created_at)} — {i.mensaje}</p>; })}
@@ -163,7 +148,6 @@ export default function FichaOT(props){
           {evs.slice(0,12).map(function(e){ return <p key={e.id} style={{...S.sub,margin:'3px 0'}}>{fmtFecha(e.created_at)} · {e.evento}</p>; })}
           {evs.length===0? <p style={S.sub}>Sin movimientos.</p> : null}
         </div>
-
         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
           <button style={{...S.btnO(T.info),width:'auto',marginBottom:0}} onClick={pdf}>📄 PDF</button>
           <button style={{...S.btnO(T.warn),width:'auto',marginBottom:0}} onClick={gmail}>✉ Gmail</button>
