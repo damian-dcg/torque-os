@@ -145,6 +145,7 @@ export default function Consola(){
         <div style={{flex:1,minWidth:0}}><div style={S.wrap}>
           {tab==='kpis'? <ModKpis/> : null}
           {tab==='bi'? <ModBi/> : null}
+          {tab==='exportar'? <ModExportar avisar={avisar}/> : null}
           {tab==='maestros'? <div>
             <TablaPro titulo="Familias de producto" rows={fams} campos={[['code','Código'],['name','Nombre']]} onEdit={function(r,k,v){ save('product_families',{[k]:v},r.id); }} onAdd={function(f){ save('product_families',f); }} onDel={function(r){ remove('product_families',r.id); }}/>
             <TablaPro titulo="Tipos de servicio" rows={servs} campos={[['code','Código'],['nombre','Nombre'],['base_price','Precio base','num']]} onEdit={function(r,k,v){ save('service_types',{[k]:v},r.id); }} onAdd={function(f){ save('service_types',f); }} onDel={function(r){ remove('service_types',r.id); }}/>
