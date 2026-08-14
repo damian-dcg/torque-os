@@ -83,6 +83,7 @@ export default function ModImportar(props){
         kpi:kpi
       });
     });
+    var seen={}; ots=ots.filter(function(o){ if(!o.ext_id||seen[o.ext_id])return false; seen[o.ext_id]=true; return true; });
     var ok=0; var err='';
     for(var b=0;b<ots.length;b+=200){
       var res=await upsertRobusto(ots.slice(b,b+200));
