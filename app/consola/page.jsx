@@ -33,11 +33,12 @@ import ModDesarme from '../../lib/consola/mod_desarme';
 import ModRecuperacion from '../../lib/consola/mod_recuperacion';
 import ModInventario from '../../lib/consola/mod_inventario';
 import ModCompras from '../../lib/consola/mod_compras';
+import ModCaja from '../../lib/consola/mod_caja';
 
 const CATS = {
   OPERACIONES: [['ots','Órdenes de Trabajo'],['nueva','Nueva OT'],['recepcion','Recepción y Custodia'],['aprobaciones','Aprobaciones'],['desarme','Desarme Autorizado'],['recuperacion','Recuperación y Stock'],['inventario','Inventario Avanzado'],['compras','Compras y Proveedores'],['buzon','Buzón del Agente'],['agenda','Agenda'],['rutas','Optimizador de Rutas'],['bodega','Bodega / Repuestos']],
   ADMINISTRACION: [['maestros','Maestros y Parámetros'],['productos','Productos y Garantías'],['paquetes','Paquetes de Servicio'],['checklists','Checklists'],['clientes','Clientes'],['activos','Activos / Equipos'],['tecnicos','Técnicos y SSTT'],['parametros','Parámetros Generales']],
-  FINANZAS: [['presupuestos','Presupuestos'],['red','Liquidaciones SSTT'],['bonos','Bonos']],
+  FINANZAS: [['caja','Caja y Facturación'],['presupuestos','Presupuestos'],['red','Liquidaciones SSTT'],['bonos','Bonos']],
   ANALISIS: [['kpis','Dashboard KPIs'],['importar','Importar Datos'],['conectores','Conectores'],['config','Tenant y Marca'],['auditoria','Auditoría']]
 };
 
@@ -188,6 +189,7 @@ export default function Consola(){
           {tab==='activos'? <ModActivos avisar={avisar}/> : null}
           {tab==='tecnicos'? <ModTecnicos avisar={avisar}/> : null}
           {tab==='parametros'? <ModParametros avisar={avisar}/> : null}
+          {tab==='caja'? <ModCaja avisar={avisar} me={me}/> : null}
           {tab==='presupuestos'? <ModPresupuestos avisar={avisar} tenant={tenant}/> : null}
           {tab==='red'? <ModRed avisar={avisar}/> : null}
           {tab==='bonos'? <ModBonos avisar={avisar}/> : null}
