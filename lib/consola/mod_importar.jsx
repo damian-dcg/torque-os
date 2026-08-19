@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { supabase } from '../supabase';
 import { T, S } from '../ui';
 
-const BIANCHI = ['968088807', '96808880-7'];
-const TIPOS = { 'ARMADO': 'armado_unidad', 'GARANTIA': 'repuesto_garantia', 'EVALUACION': 'evaluacion', 'POST VENTA': 'servicio', 'DEVOLUCION': 'devolucion_dinero', 'RETIRO': 'retiro', 'RECLAMO': 'reclamo', 'MANTENCION': 'mantencion', 'CAMBIO': 'cambio_producto', 'DESPACHO': 'despacho', 'LEVANTAMIENTO': 'levantamiento', 'ANULACION': 'anulacion' };
+var BIANCHI = ['968088807', '96808880-7'];
+var TIPOS = { 'ARMADO': 'armado_unidad', 'GARANTIA': 'repuesto_garantia', 'EVALUACION': 'evaluacion', 'POST VENTA': 'servicio', 'DEVOLUCION': 'devolucion_dinero', 'RETIRO': 'retiro', 'RECLAMO': 'reclamo', 'MANTENCION': 'mantencion', 'CAMBIO': 'cambio_producto', 'DESPACHO': 'despacho', 'LEVANTAMIENTO': 'levantamiento', 'ANULACION': 'anulacion' };
 
 function splitLine(line) {
   var out = [], cur = '', q = false;
@@ -30,9 +30,9 @@ function fdate(v) {
 
 export default function ModImportar(props) {
   var avisar = props.avisar || function () {};
+  var onOk = props.onOk || function () {};
   var [log, setLog] = useState('');
   var [busy, setBusy] = useState(false);
-
   function add(s) { setLog(function (l) { return l + s + '\n'; }); }
 
   async function processFile(file) {
@@ -42,24 +42,22 @@ export default function ModImportar(props) {
     lines.forEach(function (l, ix) {
       var r = splitLine(l);
       var first = String(r[0] || '').trim().toUpperCase();
-      if (ix === 0 && (first === 'ID OT' || first.indexOf('ID') === 0 && first.indexOf('OT') >= 0)) return;
+      if (ix === 0 && (first === 'ID OT' || first.indexOf('IDOT') === 0)) return;
       if (!r[0] || String(r[0]).trim() === '') return;
       rows.push(r);
     });
-    // dedupe en memoria por ID OT (adiós error de duplicados en el lote)
     var seen = {};
     rows = rows.filter(function (r) { var k = String(r[0]).trim(); if (seen[k]) return false; seen[k] = true; return true; });
     add(file.name + ': ' + rows.length + ' filas únicas.');
 
-    // 1) clientes por RUT
     var custMap = {};
     rows.forEach(function (r) {
       var rut = String(r[4] || r[3] || '').trim();
       if (!rut) return;
-      if (!custMap[rut]) custMap[rut] = String(r[2] || '').trim() || 'CLIENTE ' + rut;
+      if (!custMap[rut]) custMap[rut] = String(r[2] || '').trim() || ('CLIENTE ' + rut);
     });
     var custArr = Object.keys(custMap).map(function (rut) {
-      return { tenant_id: 'dcg', tipo: BIANCHI.indexOf(rut.replace(/[^0-9kK]/g, '')) >= 0 || BIANCHI.indexOf(rut) >= 0 ? 'mayorista' : 'final', rut: rut, nombre: custMap[rut] };
+      return { tenant_id: 'dcg', tipo: BIANCHI.indexOf(rut.replace(/[^0-9kK]/g, '')) >= 0 ? 'mayorista' : 'final', rut: rut, nombre: custMap[rut] };
     });
     var cOk = 0;
     for (var c = 0; c < custArr.length; c += 50) {
@@ -72,33 +70,24 @@ export default function ModImportar(props) {
     var byRut = {};
     (sel.data || []).forEach(function (x) { byRut[x.rut] = x.id; });
 
-    // 2) OTs
-    var ots = [];
-    var salt = 0;
+    var ots = [], salt = 0;
     rows.forEach(function (r) {
       var rut = String(r[4] || r[3] || '').trim();
       var cid = byRut[rut] || null;
       if (!cid) { salt++; return; }
       var ext = String(r[0]).trim();
-      var estado = String(r[14] || '').toLowerCase().indexOf('cerr') >= 0 ? 'Cerrada' : 'Ingresada';
       var fing = fdate(r[1]);
-      var kpi = {
-        tipo_equipo: String(r[5] || '').trim(), tipo_servicio: String(r[8] || '').trim(),
-        horas: num(r[15]), venta_mo: money(r[17]), costo_rep: money(r[18]), venta_rep: money(r[19]),
-        venta_total: money(r[20]), costo_total: money(r[23]), margen: money(r[24]), pct_margen: String(r[25] || '').trim(),
-        ftf: String(r[32] || '').trim(), dias: num(r[27]), reincidencia: String(r[28] || '').trim(),
-        reclamo: String(r[29] || '').trim(), nota: parseInt(r[30], 10) || 0, nivel: String(r[31] || '').trim(),
-        usa_rep: String(r[33] || '').trim(), alerta: String(r[34] || '').trim(),
-        mes: String(r[36] || '').trim(), anio: String(r[37] || '').trim(), repuesto: String(r[40] || '').trim(), falla: String(r[43] || '').trim()
-      };
       ots.push({
         tenant_id: 'dcg', ext_id: ext, ot_number: ext, customer_id: cid,
         tipo: TIPOS[String(r[8] || '').toUpperCase()] || 'servicio',
-        tipo_equipo: String(r[5] || '').trim(), estado: estado, canal: 'vba',
-        created_at: fing ? fing + 'T12:00:00' : null,
+        tipo_equipo: String(r[5] || '').trim(),
+        estado: String(r[14] || '').toLowerCase().indexOf('cerr') >= 0 ? 'Cerrada' : 'Ingresada',
+        canal: 'vba', created_at: fing ? (fing + 'T12:00:00') : null,
         descripcion: String(r[38] || '').trim() || null,
-        tecnico_nombre: String(r[9] || '').trim() || null, quien_registra: String(r[6] || '').trim() || null,
-        modelo: String(r[7] || '').trim() || null, modelo_limpio: String(r[41] || '').trim() || String(r[7] || '').trim() || null,
+        tecnico_nombre: String(r[9] || '').trim() || null,
+        quien_registra: String(r[6] || '').trim() || null,
+        modelo: String(r[7] || '').trim() || null,
+        modelo_limpio: String(r[41] || '').trim() || String(r[42] || '').trim() || null,
         fecha_promesa: fdate(r[10]), fecha_inicio: fdate(r[11]), fecha_fin_tecnico: fdate(r[12]), fecha_entrega_cliente: fdate(r[13]),
         cantidad_unidades: parseInt(r[39], 10) || 1,
         horas: num(r[15]), costo_mo: money(r[16]), venta_mo: money(r[17]), costo_rep: money(r[18]), venta_rep: money(r[19]),
@@ -110,7 +99,15 @@ export default function ModImportar(props) {
         ftf: String(r[32] || '').trim() || 'SI', usa_repuestos: String(r[33] || '').trim() || 'NO',
         alerta: String(r[34] || '').trim() || 'OK', mes: String(r[36] || '').trim(), anio: String(r[37] || '').trim(),
         repuesto: String(r[40] || '').trim(), falla_fabrica: String(r[43] || '').trim() || 'NO', falla: String(r[43] || '').trim() || 'NO',
-        kpi: kpi
+        kpi: {
+          tipo_equipo: String(r[5] || '').trim(), tipo_servicio: String(r[8] || '').trim(),
+          horas: num(r[15]), venta_mo: money(r[17]), costo_rep: money(r[18]), venta_rep: money(r[19]),
+          venta_total: money(r[20]), costo_total: money(r[23]), margen: money(r[24]), pct_margen: String(r[25] || '').trim(),
+          ftf: String(r[32] || '').trim(), dias: num(r[27]), reincidencia: String(r[28] || '').trim(),
+          reclamo: String(r[29] || '').trim(), nota: parseInt(r[30], 10) || 0, nivel: String(r[31] || '').trim(),
+          usa_rep: String(r[33] || '').trim(), alerta: String(r[34] || '').trim(),
+          mes: String(r[36] || '').trim(), anio: String(r[37] || '').trim(), repuesto: String(r[40] || '').trim(), falla: String(r[43] || '').trim()
+        }
       });
     });
     add('OTs preparadas: ' + ots.length + ' · sin cliente: ' + salt + '.');
@@ -131,18 +128,19 @@ export default function ModImportar(props) {
     for (var i = 0; i < files.length; i++) { await processFile(files[i]); }
     var fin = await supabase.from('work_orders').select('id', { count: 'exact', head: true });
     add('TOTAL OTs en base: ' + (fin.count || 0) + '.');
-    add('✔ Proceso terminado. Revisa Dashboard/KPIs: los totales deben calzar con tu Excel.');
+    add('✔ Proceso terminado.');
     setBusy(false);
+    onOk();
     avisar('Import terminado', T.ok);
   }
 
   return (
     <div style={S.card}>
       <h2 style={S.h2}>Importar historial KPIs (CSV de tu Excel)</h2>
-      <p style={S.sub}>Selecciona los 4 CSV (KPIs 1–4) juntos. Dedupe por ID OT, clientes por RUT, upsert por ext_id en lotes de 100.</p>
+      <p style={S.sub}>Selecciona los 4 CSV juntos. Dedupe por ID OT · clientes por RUT · upsert por ext_id en lotes de 100.</p>
       <input type="file" accept=".csv" multiple disabled={busy} onChange={onFiles} />
-      {busy && <p style={{ ...S.sub, color: T.info }}>Procesando… no cierres esta pestaña.</p>}
-      <pre style={{ background: T.surface2, borderRadius: 8, padding: 10, fontSize: 12, whiteSpace: 'pre-wrap', minHeight: 120 }}>{log}</pre>
+      {busy ? <p style={{ ...S.sub, color: T.info }}>Procesando… no cierres esta pestaña.</p> : null}
+      <pre style={{ background: T.surface2, borderRadius: 8, padding: 10, fontSize: 12, whiteSpace: 'pre-wrap', minHeight: 140 }}>{log}</pre>
     </div>
   );
 }
