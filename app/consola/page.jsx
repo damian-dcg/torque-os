@@ -100,12 +100,12 @@ export default function Consola(){
     });
     return onChange(cargar);
   },[]);
-  const operativas=ots.filter(function(o){ return !esPendiente(o); });
-  const visibles=operativas.filter(function(o){
+  const lista=ots.filter(function(o){
     const t=q.toLowerCase();
-    const okQ=!t||String(o.ot_number).indexOf(t)>=0||String(o.ext_id||'').toLowerCase().indexOf(t)>=0||String((cust[o.customer_id]||{}).nombre||'').toLowerCase().indexOf(t)>=0;
+    const c=cust[o.customer_id]||{};
+    const okQ=!t||String(o.ot_number).toLowerCase().indexOf(t)>=0||String(o.ext_id||'').toLowerCase().indexOf(t)>=0||String(c.nombre||'').toLowerCase().indexOf(t)>=0;
     return okQ&&(!fEst||o.estado===fEst);
-  });
+  }).slice(0,400);
   return (
     <main style={S.main}>
       <style>{'@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}.blink{animation:blink 1s infinite}'}</style>
@@ -118,7 +118,7 @@ export default function Consola(){
             return <button key={c} onClick={function(){ setCat(c); setTab(CATS[c][0][0]); }} style={{padding:'9px 16px',borderRadius:999,border:cat===c?'0':'1px solid #3A4149',background:cat===c?brand:'transparent',color:cat===c?'#fff':'#E6EAEE',fontWeight:700,fontSize:13,cursor:'pointer'}}>{c}</button>;
           })}
         </nav>
-        <a href="/inventario" style={{...S.btnO(T.teal),width:'auto',marginBottom:0,padding:'8px 14px',textDecoration:'none'}}>Inventario</a>
+        <button onClick={function(){ setCat('OPERACIONES'); setTab('inventario'); }} style={{...S.btnO(T.teal),width:'auto',marginBottom:0,padding:'8px 14px'}}>Inventario</button>
         <a href="/sstt" style={{...S.btnO(T.violet),width:'auto',marginBottom:0,padding:'8px 14px',textDecoration:'none'}}>Portal SSTT</a>
         <a href="/tecnico" style={{...S.btnO(T.info),width:'auto',marginBottom:0,padding:'8px 14px',textDecoration:'none'}}>Vista Técnico</a>
         <button onClick={async function(){ await supabase.auth.signOut(); router.replace('/'); }} style={{...S.btnO(T.danger),width:'auto',marginBottom:0,padding:'8px 14px'}}>Salir</button>
@@ -134,13 +134,46 @@ export default function Consola(){
           })}
         </aside>
         <div style={{flex:1,minWidth:0}}><div style={S.wrap}>
+          {tab==='ots'? <div>
+            <div style={{...S.card,marginBottom:12,display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}>
+              <input style={{...S.input,width:280}} placeholder="Buscar OT / cliente / ext_id…" value={q} onChange={function(e){ setQ(e.target.value); }}/>
+              <select style={{...S.input,width:190}} value={fEst} onChange={function(e){ setFEst(e.target.value); }}>
+                <option value="">Todos los estados</option>
+                {['Ingresada','Asignada','Trabajando','Esperando Repuesto','Cerrada','Anulada'].map(function(s){ return <option key={s} value={s}>{s}</option>; })}
+              </select>
+              <span style={S.sub}>{lista.length} OT(s) · clic en una fila abre la ficha</span>
+            </div>
+            <div style={S.card}>
+              <div style={{overflowX:'auto'}}>
+                <table style={{width:'100%',borderCollapse:'collapse'}}>
+                  <thead><tr>
+                    <th style={S.th}>OT</th><th style={S.th}>Ingreso</th><th style={S.th}>Cliente</th><th style={S.th}>Equipo</th><th style={S.th}>Servicio</th><th style={S.th}>Técnico</th><th style={S.th}>Estado</th>
+                  </tr></thead>
+                  <tbody>
+                    {lista.map(function(o){
+                      const c=cust[o.customer_id]||{};
+                      return (
+                        <tr key={o.id} onClick={function(){ setSel(o); }} style={{cursor:'pointer'}}>
+                          <td style={S.td}><b>{o.ot_number}</b>{o.ext_id? <span style={{color:'#8A949E',fontSize:11}}> · {o.ext_id}</span> : null}</td>
+                          <td style={S.td}>{fmtFecha(o.created_at)}</td>
+                          <td style={S.td}>{c.nombre||'—'}</td>
+                          <td style={S.td}>{o.modelo||o.tipo_equipo||'—'}</td>
+                          <td style={S.td}>{o.tipo||'—'}</td>
+                          <td style={S.td}>{o.tecnico_nombre||tecName(o)}</td>
+                          <td style={S.td}><span style={S.pill(estColor(o.estado))}>{o.estado}</span></td>
+                        </tr>
+                      );
+                    })}
+                    {lista.length===0? <tr><td style={S.td} colSpan={7}>Sin OTs que coincidan (aún no hay carga: usa ANALISIS → Importar Datos).</td></tr> : null}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div> : null}
           {tab==='kpis'? <ModKpis/> : null}
           {tab==='bi'? <ModBi/> : null}
           {tab==='exportar'? <ModExportar avisar={avisar}/> : null}
           {tab==='maestros'? <ModMaestros avisar={avisar}/> : null}
-          {tab==='ots'? <div>
-            <div style={{...S.sub,marginBottom:8}}>Para el Excel de base completa usa ANALISIS → Exportar Base.</div>
-          </div> : null}
           {tab==='recepcion'? <ModRecepcion avisar={avisar} otPreset={recPreset}/> : null}
           {tab==='aprobaciones'? <ModAprobaciones avisar={avisar}/> : null}
           {tab==='desarme'? <ModDesarme avisar={avisar}/> : null}
