@@ -73,6 +73,17 @@ export default function Consola(){
     if(o.asignado_company_id) return satsMap[o.asignado_company_id]||('SSTT #'+o.asignado_company_id);
     return '—';
   }
+  function slaPill(o){
+    if(o.estado==='Cerrada'||o.estado==='Anulada') return null;
+    var hoy=new Date().toISOString().slice(0,10);
+    var L=o.fecha_promesa;
+    if(!L) return {t:'sin límite',c:T.muted};
+    if(o.fecha_programada&&o.fecha_programada>L) return {t:'prog. fuera de SLA',c:T.danger};
+    if(hoy>L) return {t:'SLA VENCIDO',c:T.danger};
+    var d=Math.round((new Date(L+'T00:00:00')-new Date(hoy+'T00:00:00'))/86400000);
+    if(d<=2) return {t:'por vencer ('+d+'d)',c:T.warn};
+    return {t:'en plazo ('+d+'d)',c:T.ok};
+  }
   async function cargar(){
     const r=await Promise.all([
       list('work_orders'),list('customers'),list('product_families'),list('service_types'),
@@ -106,6 +117,8 @@ export default function Consola(){
     const okQ=!t||String(o.ot_number).toLowerCase().indexOf(t)>=0||String(o.ext_id||'').toLowerCase().indexOf(t)>=0||String(c.nombre||'').toLowerCase().indexOf(t)>=0;
     return okQ&&(!fEst||o.estado===fEst);
   }).slice(0,400);
+  const sem={v:0,a:0,r:0};
+  ots.forEach(function(o){ var p=slaPill(o); if(!p) return; if(p.c===T.ok) sem.v++; else if(p.c===T.warn) sem.a++; else sem.r++; });
   return (
     <main style={S.main}>
       <style>{'@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}.blink{animation:blink 1s infinite}'}</style>
@@ -142,16 +155,20 @@ export default function Consola(){
                 {['Ingresada','Asignada','Trabajando','Esperando Repuesto','Cerrada','Anulada'].map(function(s){ return <option key={s} value={s}>{s}</option>; })}
               </select>
               <span style={S.sub}>{lista.length} OT(s) · clic en una fila abre la ficha</span>
+              <span style={{marginLeft:'auto',fontSize:12,fontWeight:800}}>
+                <span style={{color:T.ok}}>● {sem.v} en plazo</span> · <span style={{color:T.warn}}>● {sem.a} por vencer</span> · <span style={{color:T.danger}}>● {sem.r} fuera de SLA</span>
+              </span>
             </div>
             <div style={S.card}>
               <div style={{overflowX:'auto'}}>
                 <table style={{width:'100%',borderCollapse:'collapse'}}>
                   <thead><tr>
-                    <th style={S.th}>OT</th><th style={S.th}>Ingreso</th><th style={S.th}>Cliente</th><th style={S.th}>Equipo</th><th style={S.th}>Servicio</th><th style={S.th}>Técnico</th><th style={S.th}>Estado</th>
+                    <th style={S.th}>OT</th><th style={S.th}>Ingreso</th><th style={S.th}>Cliente</th><th style={S.th}>Equipo</th><th style={S.th}>Servicio</th><th style={S.th}>Técnico</th><th style={S.th}>Programada</th><th style={S.th}>SLA</th><th style={S.th}>Estado</th>
                   </tr></thead>
                   <tbody>
                     {lista.map(function(o){
                       const c=cust[o.customer_id]||{};
+                      const p=slaPill(o);
                       return (
                         <tr key={o.id} onClick={function(){ setSel(o); }} style={{cursor:'pointer'}}>
                           <td style={S.td}><b>{o.ot_number}</b>{o.ext_id? <span style={{color:'#8A949E',fontSize:11}}> · {o.ext_id}</span> : null}</td>
@@ -160,11 +177,13 @@ export default function Consola(){
                           <td style={S.td}>{o.modelo||o.tipo_equipo||'—'}</td>
                           <td style={S.td}>{o.tipo||'—'}</td>
                           <td style={S.td}>{o.tecnico_nombre||tecName(o)}</td>
+                          <td style={S.td}>{o.fecha_programada||'—'}</td>
+                          <td style={S.td}>{p? <span style={S.pill(p.c)}>{p.t}</span> : <span style={{color:'#8A949E'}}>cerrada</span>}</td>
                           <td style={S.td}><span style={S.pill(estColor(o.estado))}>{o.estado}</span></td>
                         </tr>
                       );
                     })}
-                    {lista.length===0? <tr><td style={S.td} colSpan={7}>Sin OTs que coincidan (aún no hay carga: usa ANALISIS → Importar Datos).</td></tr> : null}
+                    {lista.length===0? <tr><td style={S.td} colSpan={9}>Sin OTs que coincidan (aún no hay carga: usa ANALISIS → Importar Datos).</td></tr> : null}
                   </tbody>
                 </table>
               </div>
