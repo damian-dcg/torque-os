@@ -11,8 +11,8 @@ export default function ModNuevaOT(props) {
   var onOk = props.onOk || function () {};
   var [cust, setCust] = useState([]); var [fams, setFams] = useState([]); var [prods, setProds] = useState([]);
   var [servs, setServs] = useState([]); var [sla, setSla] = useState([]); var [regs, setRegs] = useState([]);
-  var [sats, setSats] = useState([]); var [users, setUsers] = useState([]); var [carga, setCarga] = useState({});
-  var [busy, setBusy] = useState(false);
+  var [coms, setComs] = useState([]); var [sats, setSats] = useState([]); var [users, setUsers] = useState([]);
+  var [carga, setCarga] = useState({}); var [busy, setBusy] = useState(false);
   var [f, setF] = useState({ cliente: '', nuevo: false, nombre: '', rut: '', region_id: '', comuna: '', direccion: '', familia_id: '', modelo: '', serie: '', cantidad: 1, electrica: false, servicio: 'ARMADO', prioridad: 'media', descripcion: '', asig: '' });
   function set(k, v) { setF(function (o) { var n = Object.assign({}, o); n[k] = v; return n; }); }
 
@@ -24,16 +24,17 @@ export default function ModNuevaOT(props) {
       supabase.from('service_types').select('*').order('id'),
       supabase.from('sla_matrix').select('*'),
       supabase.from('regions').select('*').order('id'),
+      supabase.from('comunas').select('*').order('nombre'),
       supabase.from('companies').select('*').eq('tipo', 'sat'),
       supabase.from('users').select('*'),
       supabase.from('work_orders').select('asignado_user_id,asignado_company_id,estado').limit(2000)
     ]);
     setCust(r[0].data || []); setFams(r[1].data || []); setProds(r[2].data || []);
     setServs((r[3].data || []).filter(function (s) { return s.active !== false; }));
-    setSla(r[4].data || []); setRegs(r[5].data || []);
-    setSats((r[6].data || []).filter(function (s) { return s.activo; }));
-    setUsers(r[7].data || []);
-    var c = {}; (r[8].data || []).forEach(function (o) {
+    setSla(r[4].data || []); setRegs(r[5].data || []); setComs(r[6].data || []);
+    setSats((r[7].data || []).filter(function (s) { return s.activo; }));
+    setUsers(r[8].data || []);
+    var c = {}; (r[9].data || []).forEach(function (o) {
       if (o.estado === 'Cerrada') return;
       if (o.asignado_company_id) c['s' + o.asignado_company_id] = (c['s' + o.asignado_company_id] || 0) + 1;
       if (o.asignado_user_id) c['u' + o.asignado_user_id] = (c['u' + o.asignado_user_id] || 0) + 1;
@@ -49,11 +50,14 @@ export default function ModNuevaOT(props) {
   var slaDias = (slaRow && slaRow.dias) || 15;
   var promesa = new Date(Date.now() + slaDias * 86400000).toISOString().slice(0, 10);
   var modelos = prods.filter(function (p) { return p.family_id === Number(f.familia_id); });
+  var comunasDe = coms.filter(function (c) { return c.region_id === Number(f.region_id); });
   var espReq = fam ? (fam.tipo === 'BICICLETA' ? 'bici' : fam.tipo === 'MAQUINA' ? 'fitness' : null) : null;
-  var sugeridos = sats.filter(function (s) { return (!f.region_id || s.region_id === Number(f.region_id)); })
-    .map(function (s) { return { t: 'sat', id: s.id, n: s.nombre, esp: s.especialidad, c: carga['s' + s.id] || 0, ok: !espReq || s.especialidad === 'ambos' || s.especialidad === espReq }; })
-    .concat(users.filter(function (u) { return u.rol === 'tecnico_sat' || u.rol === 'tecnico'; }).map(function (u) { return { t: 'tec', id: u.id, n: u.nombre, esp: null, c: carga['u' + u.id] || 0, ok: true }; }))
-    .sort(function (a, b) { return (b.ok ? 1 : 0) - (a.ok ? 1 : 0) || a.c - b.c; }).slice(0, 4);
+  var tecInternos = users.filter(function (u) { return u.rol === 'tecnico' || u.rol === 'tecnico_sat'; });
+  var satsOrdenados = sats.map(function (s) {
+    return { id: s.id, nombre: s.nombre, esp: s.especialidad, ok: (!f.region_id || s.region_id === Number(f.region_id)) && (!espReq || s.especialidad === 'ambos' || s.especialidad === espReq) };
+  }).sort(function (a, b) { return (b.ok ? 1 : 0) - (a.ok ? 1 : 0) || (carga['s' + a.id] || 0) - (carga['s' + b.id] || 0); });
+  var sugeridos = satsOrdenados.filter(function (s) { return s.ok; }).slice(0, 3).map(function (s) { return s.nombre; })
+    .concat(tecInternos.slice(0, 0).map(function (u) { return u.nombre; }));
 
   async function crear() {
     setBusy(true);
@@ -70,7 +74,7 @@ export default function ModNuevaOT(props) {
       var maxN = 50000; (mx.data || []).forEach(function (o) { var n = parseInt(o.ot_number, 10); if (!isNaN(n) && n > maxN) maxN = n; });
       var asigC = null, asigU = null;
       if (f.asig) { if (f.asig.indexOf('sat:') === 0) asigC = Number(f.asig.slice(4)); else asigU = Number(f.asig.slice(4)); }
-      var payload = {
+      var wi = await supabase.from('work_orders').insert([{
         tenant_id: 'dcg', ot_number: String(maxN + 1), customer_id: cid,
         tipo: f.servicio, tipo_equipo: tipoEq || null, modalidad: mod,
         estado: asigC || asigU ? 'Asignada' : 'Ingresada', prioridad: f.prioridad, canal: 'interno',
@@ -81,8 +85,7 @@ export default function ModNuevaOT(props) {
         fecha_promesa: promesa, quien_registra: 'consola',
         asignado_company_id: asigC, asignado_user_id: asigU,
         kpi: { tipo_servicio: f.servicio, tipo_equipo: tipoEq }
-      };
-      var wi = await supabase.from('work_orders').insert([payload]);
+      }]);
       if (wi.error) { avisar('⛔ ' + wi.error.message, T.danger); setBusy(false); return; }
       if (f.serie && f.familia_id) {
         await supabase.from('assets').insert([{ tenant_id: 'dcg', customer_id: cid, family_id: Number(f.familia_id), serial: f.serie, model: f.modelo || null, ubicacion: f.comuna || null }]);
@@ -97,7 +100,7 @@ export default function ModNuevaOT(props) {
   return (
     <div style={S.card}>
       <h2 style={S.h2}>Nueva OT (maestros definitivos)</h2>
-      <p style={S.sub}>1 Cliente · 2 Equipo · 3 Servicio · 4 Checklist y promesa automáticos · 5 Asignación sugerida</p>
+      <p style={S.sub}>1 Cliente · 2 Equipo · 3 Servicio · 4 Checklist y promesa automáticos · 5 Asignación</p>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div>
           <label style={S.label}>Cliente</label>
@@ -112,12 +115,15 @@ export default function ModNuevaOT(props) {
           </div> : null}
         </div>
         <div>
-          <label style={S.label}>Región / Comuna / Dirección</label>
-          <select style={S.input} value={f.region_id} onChange={function (e) { set('region_id', e.target.value); }}>
+          <label style={S.label}>Región / Comuna (maestro) / Dirección</label>
+          <select style={S.input} value={f.region_id} onChange={function (e) { set('region_id', e.target.value); set('comuna', ''); }}>
             <option value="">— Región —</option>
             {regs.map(function (r) { return <option key={r.id} value={r.id}>{r.nombre}</option>; })}
           </select>
-          <input style={{ ...S.input, marginTop: 6 }} placeholder="Comuna" value={f.comuna} onChange={function (e) { set('comuna', e.target.value); }} />
+          <select style={{ ...S.input, marginTop: 6 }} value={f.comuna} onChange={function (e) { set('comuna', e.target.value); }} disabled={!f.region_id}>
+            <option value="">{f.region_id ? '— Comuna —' : 'Primero elige región'}</option>
+            {comunasDe.map(function (c) { return <option key={c.id} value={c.nombre}>{c.nombre}</option>; })}
+          </select>
           <input style={{ ...S.input, marginTop: 6 }} placeholder="Dirección" value={f.direccion} onChange={function (e) { set('direccion', e.target.value); }} />
         </div>
         <div>
@@ -148,14 +154,17 @@ export default function ModNuevaOT(props) {
         <b style={{ fontSize: 13 }}>Checklist automático: {checklist}</b> · Tipo equipo: {tipoEq || '—'} · Modalidad: {mod} · <b>Fecha promesa: {promesa}</b> (SLA {slaDias} días)
       </div>
       <div style={{ marginTop: 12 }}>
-        <label style={S.label}>Asignación sugerida (región + especialidad + carga)</label>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button style={{ ...S.btnO(!f.asig ? T.ok : T.muted), width: 'auto', marginBottom: 0 }} onClick={function () { set('asig', ''); }}>Sin asignar (buzón)</button>
-          {sugeridos.map(function (s) {
-            var key = (s.t === 'sat' ? 'sat:' : 'tec:') + s.id;
-            return <button key={key} style={{ ...S.btnO(f.asig === key ? T.ok : (s.ok ? T.info : T.muted)), width: 'auto', marginBottom: 0 }} onClick={function () { set('asig', key); }}>{s.n} · {s.c} OTs{s.ok ? '' : ' (esp. distinta)'}</button>;
-          })}
-        </div>
+        <label style={S.label}>Asignación (★ = coincide región/especialidad · carga = OTs abiertas)</label>
+        <select style={S.input} value={f.asig} onChange={function (e) { set('asig', e.target.value); }}>
+          <option value="">— Sin asignar (queda en buzón) —</option>
+          <optgroup label={'Técnicos internos (' + tecInternos.length + ')'}>
+            {tecInternos.map(function (u) { return <option key={'tec:' + u.id} value={'tec:' + u.id}>{u.nombre} · carga {carga['u' + u.id] || 0}</option>; })}
+          </optgroup>
+          <optgroup label={'SSTT autorizados (' + satsOrdenados.length + ')'}>
+            {satsOrdenados.map(function (s) { return <option key={'sat:' + s.id} value={'sat:' + s.id}>{s.ok ? '★ ' : ''}{s.nombre} ({s.esp || 'ambos'}) · carga {carga['s' + s.id] || 0}</option>; })}
+          </optgroup>
+        </select>
+        <p style={S.sub}>Sugeridos por región/especialidad/carga: {sugeridos.join(' · ') || '—'}</p>
       </div>
       <textarea style={{ ...S.input, marginTop: 12, minHeight: 70 }} placeholder="Descripción / falla reportada" value={f.descripcion} onChange={function (e) { set('descripcion', e.target.value); }} />
       <button style={{ ...S.btn(T.ok), marginTop: 12 }} disabled={busy} onClick={crear}>{busy ? 'Creando…' : '✔ Crear OT'}</button>
