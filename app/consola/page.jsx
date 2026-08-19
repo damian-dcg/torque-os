@@ -17,6 +17,7 @@ import ModProductos from '../../lib/consola/mod_productos';
 import ModImportar from '../../lib/consola/mod_importar';
 import ModBonos from '../../lib/consola/mod_bonos';
 import ModKpis from '../../lib/consola/mod_kpis';
+import ModMaestros from '../../lib/consola/mod_maestros';
 import ModConectores from '../../lib/consola/mod_conectores';
 import ModConfig from '../../lib/consola/mod_config';
 import ModRed from '../../lib/consola/mod_red';
@@ -136,14 +137,7 @@ export default function Consola(){
           {tab==='kpis'? <ModKpis/> : null}
           {tab==='bi'? <ModBi/> : null}
           {tab==='exportar'? <ModExportar avisar={avisar}/> : null}
-          {tab==='maestros'? <div>
-            <TablaPro titulo="Familias de producto" rows={fams} campos={[['code','Código'],['name','Nombre']]} onEdit={function(r,k,v){ save('product_families',{[k]:v},r.id); }} onAdd={function(f){ save('product_families',f); }} onDel={function(r){ remove('product_families',r.id); }}/>
-            <TablaPro titulo="Tipos de servicio" rows={servs} campos={[['code','Código'],['nombre','Nombre'],['base_price','Precio base','num']]} onEdit={function(r,k,v){ save('service_types',{[k]:v},r.id); }} onAdd={function(f){ save('service_types',f); }} onDel={function(r){ remove('service_types',r.id); }}/>
-            <TablaPro titulo="Tipos de mantención" rows={mants} campos={[['nombre','Nombre'],['descripcion','Descripción']]} onEdit={function(r,k,v){ save('mant_types',{[k]:v},r.id); }} onAdd={function(f){ save('mant_types',f); }} onDel={function(r){ remove('mant_types',r.id); }}/>
-            <TablaPro titulo="Garantías por familia (meses)" rows={wrules} campos={[['family_id','ID Familia','num'],['meses','Meses','num'],['condiciones','Condiciones']]} onEdit={function(r,k,v){ save('warranty_rules',{[k]:v},r.id); }} onAdd={function(f){ save('warranty_rules',f); }} onDel={function(r){ remove('warranty_rules',r.id); }}/>
-            <TablaPro titulo="Técnicos (costos)" rows={trates} campos={[['technician','Técnico'],['costo_sueldo_mensual','Sueldo','num'],['horas_mes','Horas/mes','num'],['costo_x_hora','Costo×h','num'],['venta_x_hora','Venta×h','num'],['markup_pct','Markup %','num']]} onEdit={function(r,k,v){ save('tech_rates',{[k]:v},r.id); }} onAdd={function(f){ save('tech_rates',f); }} onDel={function(r){ remove('tech_rates',r.id); }}/>
-            <TablaPro titulo="SLA (días)" rows={sla} campos={[['tipo_servicio','Servicio'],['tipo_equipo','Equipo'],['dias','Días','num']]} onEdit={function(r,k,v){ save('sla_matrix',{[k]:v},r.id); }} onAdd={function(f){ save('sla_matrix',f); }} onDel={function(r){ remove('sla_matrix',r.id); }}/>
-          </div> : null}
+          {tab==='maestros'? <ModMaestros avisar={avisar}/> : null}
           {tab==='ots'? <div>
             <div style={{...S.sub,marginBottom:8}}>Para el Excel de base completa usa ANALISIS → Exportar Base.</div>
           </div> : null}
