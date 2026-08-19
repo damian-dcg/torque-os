@@ -13,17 +13,12 @@ export default function ModNuevaOT(props) {
   var [servs, setServs] = useState([]); var [sla, setSla] = useState([]); var [regs, setRegs] = useState([]);
   var [coms, setComs] = useState([]); var [sats, setSats] = useState([]); var [users, setUsers] = useState([]);
   var [carga, setCarga] = useState({}); var [busy, setBusy] = useState(false);
-  var [f, setF] = useState({ cliente: '', nuevo: false, nombre: '', rut: '', region_id: '', comuna: '', direccion: '', familia_id: '', modelo: '', serie: '', cantidad: 1, electrica: false, servicio: 'ARMADO', prioridad: 'media', descripcion: '', asig: '' });
+  var [f, setF] = useState({ cliente: '', nuevo: false, nombre: '', rut: '', region_id: '', comuna: '', direccion: '', familia_id: '', modelo: '', serie: '', cantidad: 1, electrica: false, servicio: 'ARMADO', prioridad: 'media', descripcion: '', asig: '', fecha: '' });
   function set(k, v) { setF(function (o) { var n = Object.assign({}, o); n[k] = v; return n; }); }
   function onFamilia(v) {
     var name = '';
     fams.forEach(function (x) { if (x.id === Number(v)) name = x.name || ''; });
-    setF(function (o) {
-      var n = Object.assign({}, o);
-      n.familia_id = v;
-      n.electrica = /ELECTRICA/.test(name) || name === 'TROTADORA';
-      return n;
-    });
+    setF(function (o) { var n = Object.assign({}, o); n.familia_id = v; n.electrica = /ELECTRICA/.test(name) || name === 'TROTADORA'; return n; });
   }
 
   useEffect(function () { (async function () {
@@ -61,6 +56,7 @@ export default function ModNuevaOT(props) {
   var slaRow = null; sla.forEach(function (x) { if (x.tipo_servicio === f.servicio && x.tipo_equipo === tipoEq) slaRow = x; });
   var slaDias = (slaRow && slaRow.dias) || 15;
   var promesa = new Date(Date.now() + slaDias * 86400000).toISOString().slice(0, 10);
+  var fueraSLA = f.fecha && f.fecha > promesa;
   var modelos = prods.filter(function (p) { return p.family_id === Number(f.familia_id); });
   var comunasDe = coms.filter(function (c) { return c.region_id === Number(f.region_id); });
   var espReq = fam ? (fam.tipo === 'BICICLETA' ? 'bici' : fam.tipo === 'MAQUINA' ? 'fitness' : null) : null;
@@ -94,7 +90,7 @@ export default function ModNuevaOT(props) {
         comuna: f.comuna || null, direccion: f.direccion || null,
         modelo: f.modelo || null, modelo_limpio: (f.modelo || '').replace(/[\s.-]/g, '').toUpperCase() || null,
         cantidad_unidades: Number(f.cantidad) || 1, checklist_code: checklist,
-        fecha_promesa: promesa, quien_registra: 'consola',
+        fecha_promesa: promesa, fecha_programada: f.fecha || null, quien_registra: 'consola',
         asignado_company_id: asigC, asignado_user_id: asigU,
         kpi: { tipo_servicio: f.servicio, tipo_equipo: tipoEq }
       }]);
@@ -103,8 +99,8 @@ export default function ModNuevaOT(props) {
         await supabase.from('assets').insert([{ tenant_id: 'dcg', customer_id: cid, family_id: Number(f.familia_id), serial: f.serie, model: f.modelo || null, ubicacion: f.comuna || null }]);
       }
       emit(); onOk();
-      avisar('✔ OT-' + (maxN + 1) + ' creada · checklist ' + checklist + ' · promesa ' + promesa, T.ok);
-      setF({ cliente: '', nuevo: false, nombre: '', rut: '', region_id: f.region_id, comuna: '', direccion: '', familia_id: '', modelo: '', serie: '', cantidad: 1, electrica: false, servicio: f.servicio, prioridad: 'media', descripcion: '', asig: '' });
+      avisar('✔ OT-' + (maxN + 1) + ' creada · checklist ' + checklist + (f.fecha ? ' · programada ' + f.fecha : ''), T.ok);
+      setF({ cliente: '', nuevo: false, nombre: '', rut: '', region_id: f.region_id, comuna: '', direccion: '', familia_id: '', modelo: '', serie: '', cantidad: 1, electrica: false, servicio: f.servicio, prioridad: 'media', descripcion: '', asig: '', fecha: '' });
     } catch (e) { avisar('⛔ ' + e.message, T.danger); }
     setBusy(false);
   }
@@ -112,7 +108,7 @@ export default function ModNuevaOT(props) {
   return (
     <div style={S.card}>
       <h2 style={S.h2}>Nueva OT (maestros definitivos)</h2>
-      <p style={S.sub}>1 Cliente · 2 Equipo · 3 Servicio · 4 Checklist y promesa automáticos · 5 Asignación</p>
+      <p style={S.sub}>1 Cliente · 2 Equipo · 3 Servicio · 4 Checklist + fechas · 5 Asignación</p>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div>
           <label style={S.label}>Cliente</label>
@@ -163,7 +159,17 @@ export default function ModNuevaOT(props) {
         </div>
       </div>
       <div style={{ ...S.card, background: T.surface2, marginTop: 12 }}>
-        <b style={{ fontSize: 13 }}>Checklist automático: {checklist}</b> · Tipo equipo: {tipoEq || '—'} · Modalidad: {mod} · <b>Fecha promesa: {promesa}</b> (SLA {slaDias} días)
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <b style={{ fontSize: 13 }}>Checklist automático: {checklist}</b>
+          <span>· Tipo equipo: {tipoEq || '—'} · Modalidad: {mod}</span>
+          <label style={{ fontSize: 13 }}>· <b>Fecha programada (la agendas tú):</b>
+            <input style={{ ...S.input, width: 150, marginLeft: 6 }} type="date" value={f.fecha} onChange={function (e) { set('fecha', e.target.value); }} />
+          </label>
+        </div>
+        <p style={{ margin: '8px 0 0', fontSize: 13, fontWeight: 700, color: fueraSLA ? T.danger : T.text }}>
+          Límite SLA (fecha promesa, para el semáforo): {promesa} ({slaDias} días)
+          {fueraSLA ? ' · ⚠ OJO: programaste después del límite SLA' : ''}
+        </p>
       </div>
       <div style={{ marginTop: 12 }}>
         <label style={S.label}>Asignación (★ = coincide región/especialidad · carga = OTs abiertas)</label>
