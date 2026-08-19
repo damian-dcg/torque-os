@@ -15,6 +15,16 @@ export default function ModNuevaOT(props) {
   var [carga, setCarga] = useState({}); var [busy, setBusy] = useState(false);
   var [f, setF] = useState({ cliente: '', nuevo: false, nombre: '', rut: '', region_id: '', comuna: '', direccion: '', familia_id: '', modelo: '', serie: '', cantidad: 1, electrica: false, servicio: 'ARMADO', prioridad: 'media', descripcion: '', asig: '' });
   function set(k, v) { setF(function (o) { var n = Object.assign({}, o); n[k] = v; return n; }); }
+  function onFamilia(v) {
+    var name = '';
+    fams.forEach(function (x) { if (x.id === Number(v)) name = x.name || ''; });
+    setF(function (o) {
+      var n = Object.assign({}, o);
+      n.familia_id = v;
+      n.electrica = /ELECTRICA/.test(name) || name === 'TROTADORA';
+      return n;
+    });
+  }
 
   useEffect(function () { (async function () {
     var r = await Promise.all([
@@ -44,7 +54,9 @@ export default function ModNuevaOT(props) {
 
   var fam = null; fams.forEach(function (x) { if (x.id === Number(f.familia_id)) fam = x; });
   var tipoEq = fam ? (f.electrica && fam.tipo === 'BICICLETA' ? 'BICICLETA ELECTRICA' : f.electrica && fam.tipo === 'SCOOTER' ? 'SCOOTER ELECTRICO' : fam.tipo) : '';
-  var mod = Number(f.cantidad) > 1 ? 'VOL' : (tipoEq === 'MAQUINA' ? (f.electrica ? 'ME' : 'MC') : 'BU');
+  var mod = Number(f.cantidad) > 1 ? 'VOL'
+    : (tipoEq === 'MAQUINA' ? (f.electrica ? 'ME' : 'MC')
+    : (tipoEq === 'BICICLETA ELECTRICA' || tipoEq === 'SCOOTER ELECTRICO' ? 'BE' : 'BU'));
   var checklist = 'CK-' + (SVC_SHORT[f.servicio] || 'REP') + '-' + mod;
   var slaRow = null; sla.forEach(function (x) { if (x.tipo_servicio === f.servicio && x.tipo_equipo === tipoEq) slaRow = x; });
   var slaDias = (slaRow && slaRow.dias) || 15;
@@ -56,8 +68,8 @@ export default function ModNuevaOT(props) {
   var satsOrdenados = sats.map(function (s) {
     return { id: s.id, nombre: s.nombre, esp: s.especialidad, ok: (!f.region_id || s.region_id === Number(f.region_id)) && (!espReq || s.especialidad === 'ambos' || s.especialidad === espReq) };
   }).sort(function (a, b) { return (b.ok ? 1 : 0) - (a.ok ? 1 : 0) || (carga['s' + a.id] || 0) - (carga['s' + b.id] || 0); });
-  var sugeridos = satsOrdenados.filter(function (s) { return s.ok; }).slice(0, 3).map(function (s) { return s.nombre; })
-    .concat(tecInternos.slice(0, 0).map(function (u) { return u.nombre; }));
+  var sugeridos = tecInternos.slice(0, 3).map(function (u) { return u.nombre; })
+    .concat(satsOrdenados.filter(function (s) { return s.ok; }).slice(0, 3).map(function (s) { return s.nombre; }));
 
   async function crear() {
     setBusy(true);
@@ -128,7 +140,7 @@ export default function ModNuevaOT(props) {
         </div>
         <div>
           <label style={S.label}>Familia / Modelo / Serie</label>
-          <select style={S.input} value={f.familia_id} onChange={function (e) { set('familia_id', e.target.value); }}>
+          <select style={S.input} value={f.familia_id} onChange={function (e) { onFamilia(e.target.value); }}>
             <option value="">— Familia —</option>
             {fams.map(function (x) { return <option key={x.id} value={x.id}>{x.name} ({x.tipo})</option>; })}
           </select>
@@ -137,7 +149,7 @@ export default function ModNuevaOT(props) {
             {modelos.map(function (p) { return <option key={p.id} value={p.model}>{p.model} · {p.sku}</option>; })}
           </select>
           <input style={{ ...S.input, marginTop: 6 }} placeholder="N° de serie" value={f.serie} onChange={function (e) { set('serie', e.target.value); }} />
-          <label style={{ ...S.label, marginTop: 6 }}><input type="checkbox" checked={f.electrica} onChange={function (e) { set('electrica', e.target.checked); }} /> Equipo eléctrico</label>
+          <label style={{ ...S.label, marginTop: 6 }}><input type="checkbox" checked={f.electrica} onChange={function (e) { set('electrica', e.target.checked); }} /> Equipo eléctrico (se marca solo en familias eléctricas)</label>
         </div>
         <div>
           <label style={S.label}>Servicio / Cantidad / Prioridad</label>
@@ -164,7 +176,7 @@ export default function ModNuevaOT(props) {
             {satsOrdenados.map(function (s) { return <option key={'sat:' + s.id} value={'sat:' + s.id}>{s.ok ? '★ ' : ''}{s.nombre} ({s.esp || 'ambos'}) · carga {carga['s' + s.id] || 0}</option>; })}
           </optgroup>
         </select>
-        <p style={S.sub}>Sugeridos por región/especialidad/carga: {sugeridos.join(' · ') || '—'}</p>
+        <p style={S.sub}>Sugeridos (internos primero, luego SSTT de tu región): {sugeridos.join(' · ') || '—'}</p>
       </div>
       <textarea style={{ ...S.input, marginTop: 12, minHeight: 70 }} placeholder="Descripción / falla reportada" value={f.descripcion} onChange={function (e) { set('descripcion', e.target.value); }} />
       <button style={{ ...S.btn(T.ok), marginTop: 12 }} disabled={busy} onClick={crear}>{busy ? 'Creando…' : '✔ Crear OT'}</button>
