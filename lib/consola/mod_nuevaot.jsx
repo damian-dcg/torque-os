@@ -6,6 +6,7 @@ import { emit } from '../data';
 
 var SVC_SHORT = { 'ARMADO':'ARM','GARANTIA':'GAR','EVALUACION':'EVA','MANTENCION':'MAN','POST VENTA':'POS','RECLAMO':'REC','DEVOLUCION':'DEV','CAMBIO':'CAM','DESPACHO':'DES','LEVANTAMIENTO':'LEV','RETIRO':'RET','ANULACION':'ANU' };
 var FAM_ELECTRICAS = ['BICICLETA ELECTRICA', 'SCOOTER ELECTRICO', 'TROTADORA'];
+var PORTAL_DEF = { flujo: 'armado_final', nombre: '', rut: '', telefono: '', whatsapp: '', email: '', region_id: '', comuna: '', direccion: '', boleta: '', fecha_compra: '', tienda: '', producto: '', modelo_ot: '', falla: '', cantidad: 1, direccion_bodega: '' };
 
 export default function ModNuevaOT(props) {
   var avisar = props.avisar || function () {};
@@ -14,8 +15,9 @@ export default function ModNuevaOT(props) {
   var [servs, setServs] = useState([]); var [sla, setSla] = useState([]); var [regs, setRegs] = useState([]);
   var [coms, setComs] = useState([]); var [lugs, setLugs] = useState([]); var [sats, setSats] = useState([]);
   var [users, setUsers] = useState([]); var [carga, setCarga] = useState({}); var [busy, setBusy] = useState(false);
-  var [f, setF] = useState({ cliente: '', nuevo: false, nombre: '', rut: '', telefono: '', email: '', region_id: '', comuna: '', direccion: '', lugar: 'domicilio', lugar_id: '', familia_id: '', modelo: '', serie: '', cantidad: 1, electrica: false, servicio: 'ARMADO', prioridad: 'media', descripcion: '', asig: '', fecha: '' });
+  var [f, setF] = useState({ cliente: '', modal: false, portal: Object.assign({}, PORTAL_DEF), direccion: '', lugar: 'domicilio', lugar_id: '', familia_id: '', modelo: '', serie: '', cantidad: 1, electrica: false, servicio: 'ARMADO', prioridad: 'media', descripcion: '', asig: '', fecha: '' });
   function set(k, v) { setF(function (o) { var n = Object.assign({}, o); n[k] = v; return n; }); }
+  function setP(k, v) { setF(function (o) { var n = Object.assign({}, o); n.portal = Object.assign({}, o.portal, { [k]: v }); return n; }); }
   function onFamilia(v) {
     var name = '';
     fams.forEach(function (x) { if (x.id === Number(v)) name = x.name || ''; });
@@ -50,8 +52,7 @@ export default function ModNuevaOT(props) {
   })(); }, []);
 
   var clienteSel = null; cust.forEach(function (c) { if (c.id === Number(f.cliente)) clienteSel = c; });
-  var regActiva = f.nuevo ? f.region_id : (clienteSel && clienteSel.region_id ? String(clienteSel.region_id) : f.region_id);
-  var regName = ''; regs.forEach(function (r) { if (r.id === Number(regActiva)) regName = r.nombre; });
+  var regActiva = clienteSel && clienteSel.region_id ? String(clienteSel.region_id) : f.region_id_ot || '';
   var fam = null; fams.forEach(function (x) { if (x.id === Number(f.familia_id)) fam = x; });
   var tipoEq = fam ? (f.electrica && fam.tipo === 'BICICLETA' ? 'BICICLETA ELECTRICA' : f.electrica && fam.tipo === 'SCOOTER' ? 'SCOOTER ELECTRICO' : fam.tipo) : '';
   var mod = Number(f.cantidad) > 1 ? 'VOL'
@@ -63,7 +64,7 @@ export default function ModNuevaOT(props) {
   var promesa = new Date(Date.now() + slaDias * 86400000).toISOString().slice(0, 10);
   var fueraSLA = f.fecha && f.fecha > promesa;
   var modelos = prods.filter(function (p) { return p.family_id === Number(f.familia_id); });
-  var comunasDe = coms.filter(function (c) { return c.region_id === Number(regActiva); });
+  var comunasDe = coms.filter(function (c) { return c.region_id === Number(f.portal.region_id); });
   var lugaresDe = lugs.filter(function (l) { return l.activo !== false && (!regActiva || !l.region_id || l.region_id === Number(regActiva)); });
   var lugarSel = null; lugs.forEach(function (l) { if (l.id === Number(f.lugar_id)) lugarSel = l; });
   var espReq = fam ? (fam.tipo === 'BICICLETA' ? 'bici' : fam.tipo === 'MAQUINA' ? 'fitness' : null) : null;
@@ -73,43 +74,52 @@ export default function ModNuevaOT(props) {
   }).sort(function (a, b) { return (b.ok ? 1 : 0) - (a.ok ? 1 : 0) || (carga['s' + a.id] || 0) - (carga['s' + b.id] || 0); });
   var sugeridos = tecInternos.slice(0, 3).map(function (u) { return u.nombre; })
     .concat(satsOrdenados.filter(function (s) { return s.ok; }).slice(0, 3).map(function (s) { return s.nombre; }));
+  var P = f.portal;
+
+  async function crearCliente() {
+    if (!P.nombre) { avisar('⛔ Nombre / razón social obligatorio', T.danger); return; }
+    var tipoC = P.flujo === 'armado_retail' ? 'retail' : 'final';
+    var ci = await supabase.from('customers').insert([{ tenant_id: 'dcg', nombre: P.nombre, rut: P.rut || null, tipo: tipoC, telefono: P.telefono || null, whatsapp: P.whatsapp || null, email: P.email || null, region_id: P.region_id ? Number(P.region_id) : null, comuna: P.comuna || null, direccion: P.direccion || null }]).select();
+    if (ci.error) { avisar('⛔ ' + ci.error.message, T.danger); return; }
+    var nc = ci.data[0];
+    setCust(function (arr) { return arr.concat([nc]); });
+    setF(function (o) { var n = Object.assign({}, o); n.cliente = String(nc.id); n.modal = false; return n; });
+    avisar('✅ Cliente completo creado: ' + nc.nombre, T.ok);
+  }
 
   async function crear() {
     setBusy(true);
     try {
       var cid = f.cliente ? Number(f.cliente) : null;
-      if (f.nuevo) {
-        if (!f.nombre) { avisar('⛔ Nombre del cliente obligatorio', T.danger); setBusy(false); return; }
-        var ci = await supabase.from('customers').insert([{ tenant_id: 'dcg', nombre: f.nombre, rut: f.rut || null, tipo: 'final', telefono: f.telefono || null, email: f.email || null, region_id: regActiva ? Number(regActiva) : null, comuna: f.comuna || null, direccion: f.direccion || null }]).select();
-        if (ci.error) { avisar('⛔ ' + ci.error.message, T.danger); setBusy(false); return; }
-        cid = ci.data[0].id;
-      }
       if (!cid) { avisar('⛔ Selecciona o crea un cliente', T.danger); setBusy(false); return; }
       var dirOT = f.direccion || (lugarSel && lugarSel.address) || (clienteSel && clienteSel.direccion) || null;
       var mx = await supabase.from('work_orders').select('ot_number');
       var maxN = 50000; (mx.data || []).forEach(function (o) { var n = parseInt(o.ot_number, 10); if (!isNaN(n) && n > maxN) maxN = n; });
       var asigC = null, asigU = null;
       if (f.asig) { if (f.asig.indexOf('sat:') === 0) asigC = Number(f.asig.slice(4)); else asigU = Number(f.asig.slice(4)); }
+      var portal = { flujo: P.flujo, boleta: P.boleta || null, fecha_compra: P.fecha_compra || null, tienda: P.tienda || null, producto: P.producto || null, modelo_ot: P.modelo_ot || null, falla: P.falla || null, cantidad: Number(P.cantidad) || 1, direccion_bodega: P.direccion_bodega || null };
       var wi = await supabase.from('work_orders').insert([{
         tenant_id: 'dcg', ot_number: String(maxN + 1), customer_id: cid,
         tipo: f.servicio, tipo_equipo: tipoEq || null, modalidad: mod,
         estado: asigC || asigU ? 'Asignada' : 'Ingresada', prioridad: f.prioridad, canal: 'interno',
-        descripcion: f.descripcion || null, region_id: regActiva ? Number(regActiva) : null,
-        comuna: f.nuevo ? (f.comuna || null) : (clienteSel && clienteSel.comuna) || null,
+        descripcion: f.descripcion || (P.falla ? 'Falla: ' + P.falla : null),
+        region_id: regActiva ? Number(regActiva) : (clienteSel && clienteSel.region_id) || null,
+        comuna: (clienteSel && clienteSel.comuna) || null,
         direccion: dirOT, lugar_tipo: f.lugar, lugar_id: f.lugar_id ? Number(f.lugar_id) : null,
-        modelo: f.modelo || null, modelo_limpio: (f.modelo || '').replace(/[\s.-]/g, '').toUpperCase() || null,
+        modelo: f.modelo || P.modelo_ot || null, modelo_limpio: String(f.modelo || P.modelo_ot || '').replace(/[\s.-]/g, '').toUpperCase() || null,
         cantidad_unidades: Number(f.cantidad) || 1, checklist_code: checklist,
         fecha_promesa: promesa, fecha_programada: f.fecha || null, quien_registra: 'consola',
+        datos_portal: portal,
         asignado_company_id: asigC, asignado_user_id: asigU,
         kpi: { tipo_servicio: f.servicio, tipo_equipo: tipoEq }
       }]);
       if (wi.error) { avisar('⛔ ' + wi.error.message, T.danger); setBusy(false); return; }
       if (f.serie && f.familia_id) {
-        await supabase.from('assets').insert([{ tenant_id: 'dcg', customer_id: cid, family_id: Number(f.familia_id), serial: f.serie, model: f.modelo || null, ubicacion: f.comuna || null }]);
+        await supabase.from('assets').insert([{ tenant_id: 'dcg', customer_id: cid, family_id: Number(f.familia_id), serial: f.serie, model: f.modelo || null, ubicacion: (clienteSel && clienteSel.comuna) || null }]);
       }
       emit(); onOk();
       avisar('✔ OT-' + (maxN + 1) + ' creada · checklist ' + checklist + (f.fecha ? ' · programada ' + f.fecha : ''), T.ok);
-      setF({ cliente: '', nuevo: false, nombre: '', rut: '', telefono: '', email: '', region_id: '', comuna: '', direccion: '', lugar: 'domicilio', lugar_id: '', familia_id: '', modelo: '', serie: '', cantidad: 1, electrica: false, servicio: f.servicio, prioridad: 'media', descripcion: '', asig: '', fecha: '' });
+      setF({ cliente: '', modal: false, portal: Object.assign({}, PORTAL_DEF), direccion: '', lugar: 'domicilio', lugar_id: '', familia_id: '', modelo: '', serie: '', cantidad: 1, electrica: false, servicio: f.servicio, prioridad: 'media', descripcion: '', asig: '', fecha: '' });
     } catch (e) { avisar('⛔ ' + e.message, T.danger); }
     setBusy(false);
   }
@@ -121,29 +131,15 @@ export default function ModNuevaOT(props) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <div>
           <label style={S.label}>Cliente</label>
-          <select style={S.input} value={f.cliente} onChange={function (e) { set('cliente', e.target.value); }} disabled={f.nuevo}>
+          <select style={S.input} value={f.cliente} onChange={function (e) { set('cliente', e.target.value); }}>
             <option value="">— Seleccionar —</option>
             {cust.map(function (c) { return <option key={c.id} value={c.id}>{c.nombre}{c.rut ? ' · ' + c.rut : ''}</option>; })}
           </select>
-          <label style={{ ...S.label, marginBottom: 8 }}><input type="checkbox" checked={f.nuevo} onChange={function (e) { set('nuevo', e.target.checked); }} /> Crear cliente nuevo</label>
-          {f.nuevo ? <div>
-            <input style={S.input} placeholder="Nombre / razón social *" value={f.nombre} onChange={function (e) { set('nombre', e.target.value); }} />
-            <input style={S.input} placeholder="RUT (opcional)" value={f.rut} onChange={function (e) { set('rut', e.target.value); }} />
-            <input style={S.input} placeholder="Teléfono" value={f.telefono} onChange={function (e) { set('telefono', e.target.value); }} />
-            <input style={S.input} placeholder="Email" value={f.email} onChange={function (e) { set('email', e.target.value); }} />
-            <select style={S.input} value={f.region_id} onChange={function (e) { set('region_id', e.target.value); set('comuna', ''); }}>
-              <option value="">— Región —</option>
-              {regs.map(function (r) { return <option key={r.id} value={r.id}>{r.nombre}</option>; })}
-            </select>
-            <select style={S.input} value={f.comuna} onChange={function (e) { set('comuna', e.target.value); }} disabled={!f.region_id}>
-              <option value="">{f.region_id ? '— Comuna —' : 'Primero elige región'}</option>
-              {comunasDe.map(function (c) { return <option key={c.id} value={c.nombre}>{c.nombre}</option>; })}
-            </select>
-            <input style={S.input} placeholder="Dirección del cliente" value={f.direccion} onChange={function (e) { set('direccion', e.target.value); }} />
-          </div> : clienteSel ? <div style={{ ...S.card, background: T.surface2, marginBottom: 0 }}>
+          <button style={{ ...S.btnO(T.info), width: 'auto', marginBottom: 10 }} onClick={function () { set('modal', true); }}>＋ Crear cliente nuevo (panel completo)</button>
+          {clienteSel ? <div style={{ ...S.card, background: T.surface2, marginBottom: 0 }}>
             <p style={{ margin: 0, fontWeight: 800, fontSize: 14 }}>{clienteSel.nombre} <span style={{ color: T.muted, fontWeight: 600 }}>· {clienteSel.tipo}</span></p>
-            <p style={{ ...S.sub, margin: '4px 0' }}>RUT {clienteSel.rut || '—'} · {clienteSel.telefono || 'sin teléfono'} · {clienteSel.email || 'sin email'}</p>
-            <p style={{ ...S.sub, margin: '0 0 8px' }}>{clienteSel.direccion || 'sin dirección'}{clienteSel.comuna ? ', ' + clienteSel.comuna : ''}{regName ? ' · ' + regName : ''}</p>
+            <p style={{ ...S.sub, margin: '4px 0' }}>RUT {clienteSel.rut || '—'} · {clienteSel.telefono || clienteSel.whatsapp || 'sin teléfono'} · {clienteSel.email || 'sin email'}</p>
+            <p style={{ ...S.sub, margin: '0 0 8px' }}>{clienteSel.direccion || 'sin dirección'}{clienteSel.comuna ? ', ' + clienteSel.comuna : ''}</p>
             <input style={{ ...S.input, marginBottom: 0 }} placeholder="Dirección distinta para esta OT (opcional)" value={f.direccion} onChange={function (e) { set('direccion', e.target.value); }} />
           </div> : null}
         </div>
@@ -213,6 +209,52 @@ export default function ModNuevaOT(props) {
       </div>
       <textarea style={{ ...S.input, marginTop: 12, minHeight: 70 }} placeholder="Descripción / falla reportada" value={f.descripcion} onChange={function (e) { set('descripcion', e.target.value); }} />
       <button style={{ ...S.btn(T.ok), marginTop: 12 }} disabled={busy} onClick={crear}>{busy ? 'Creando…' : '✔ Crear OT'}</button>
+
+      {f.modal ? <div style={S.modal}>
+        <div style={S.modalCard} onClick={function (e) { e.stopPropagation(); }}>
+          <h3 style={{ margin: '0 0 10px', fontSize: 16, fontWeight: 800 }}>Crear cliente + solicitud (igual que /solicitud)</h3>
+          <label style={S.label}>Tipo de solicitud</label>
+          <select style={S.input} value={P.flujo} onChange={function (e) { setP('flujo', e.target.value); }}>
+            <option value="armado_final">Armado · cliente final</option>
+            <option value="armado_retail">Armado · retail / volumen</option>
+            <option value="garantia">Garantía</option>
+            <option value="postventa">Post-venta</option>
+          </select>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <input style={S.input} placeholder={P.flujo === 'armado_retail' ? 'Razón social *' : 'Nombre completo *'} value={P.nombre} onChange={function (e) { setP('nombre', e.target.value); }} />
+            <input style={S.input} placeholder="RUT" value={P.rut} onChange={function (e) { setP('rut', e.target.value); }} />
+            <input style={S.input} placeholder="Teléfono" value={P.telefono} onChange={function (e) { setP('telefono', e.target.value); }} />
+            <input style={S.input} placeholder="WhatsApp" value={P.whatsapp} onChange={function (e) { setP('whatsapp', e.target.value); }} />
+            <input style={S.input} placeholder="Email" value={P.email} onChange={function (e) { setP('email', e.target.value); }} />
+            <select style={S.input} value={P.region_id} onChange={function (e) { setP('region_id', e.target.value); setP('comuna', ''); }}>
+              <option value="">— Región —</option>
+              {regs.map(function (r) { return <option key={r.id} value={r.id}>{r.nombre}</option>; })}
+            </select>
+            <select style={S.input} value={P.comuna} onChange={function (e) { setP('comuna', e.target.value); }} disabled={!P.region_id}>
+              <option value="">{P.region_id ? '— Comuna —' : 'Primero región'}</option>
+              {comunasDe.map(function (c) { return <option key={c.id} value={c.nombre}>{c.nombre}</option>; })}
+            </select>
+            <input style={S.input} placeholder="Dirección" value={P.direccion} onChange={function (e) { setP('direccion', e.target.value); }} />
+          </div>
+          <div style={{ ...S.card, background: T.surface2, padding: 10 }}>
+            <b style={{ fontSize: 12, color: T.muted }}>DATOS DE LA SOLICITUD (van a la OT, no al cliente)</b>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 6 }}>
+              {P.flujo !== 'postventa' ? <input style={S.input} placeholder="N° boleta / factura" value={P.boleta} onChange={function (e) { setP('boleta', e.target.value); }} /> : null}
+              {P.flujo !== 'postventa' ? <input style={S.input} type="date" value={P.fecha_compra} onChange={function (e) { setP('fecha_compra', e.target.value); }} /> : null}
+              {P.flujo === 'armado_final' || P.flujo === 'garantia' ? <input style={S.input} placeholder="Tienda de compra" value={P.tienda} onChange={function (e) { setP('tienda', e.target.value); }} /> : null}
+              {P.flujo === 'armado_retail' ? <input style={S.input} type="number" min="1" placeholder="Cantidad unidades" value={P.cantidad} onChange={function (e) { setP('cantidad', e.target.value); }} /> : null}
+              {P.flujo === 'armado_retail' ? <input style={S.input} placeholder="Dirección bodega / tienda" value={P.direccion_bodega} onChange={function (e) { setP('direccion_bodega', e.target.value); }} /> : null}
+              <input style={S.input} placeholder="Producto" value={P.producto} onChange={function (e) { setP('producto', e.target.value); }} />
+              <input style={S.input} placeholder="Modelo" value={P.modelo_ot} onChange={function (e) { setP('modelo_ot', e.target.value); }} />
+              {P.flujo === 'garantia' || P.flujo === 'postventa' ? <input style={{ ...S.input, gridColumn: '1/-1' }} placeholder="Falla reportada" value={P.falla} onChange={function (e) { setP('falla', e.target.value); }} /> : null}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+            <button style={{ ...S.btn(T.ok), flex: 1 }} onClick={crearCliente}>✔ Crear cliente y vincular</button>
+            <button style={{ ...S.btn(T.muted), width: 120 }} onClick={function () { set('modal', false); }}>Cancelar</button>
+          </div>
+        </div>
+      </div> : null}
     </div>
   );
 }
