@@ -19,21 +19,22 @@ export default function ModRecuperacion(props){
       supabase.from('work_orders').select('*').limit(200)
     ]);
     setComponents(r[0].data||[]); setEvals(r[1].data||[]); setVals(r[2].data||[]);
-    setStock(r[3].data||[]); setSessions(r[4].data||[]); setReqs(r[5].data||[]); setOts(r[6].data||[]);
+    setStock((r[3].data||[]).filter(function(x){ return x.stock_type==='recovered'; }));
+    setSessions(r[4].data||[]); setReqs(r[5].data||[]); setOts(r[6].data||[]);
   }
   useEffect(function(){ cargar(); },[]);
   function evalDe(c){ return evals.find(function(e){return e.component_id===c;}); }
   function valDe(e){ return vals.find(function(v){return v.evaluation_id===e;}); }
   function origen(c){
     var s=sessions.find(function(x){return x.id===c.session_id;});
-    var q=s?reqs.find(function(x){return x.id===s.request_id;}):null;
+    var q=s?reqs.find(function(x){return x.request_id===s.request_id;}):null;
     var o=q?ots.find(function(x){return x.id===q.ot_id;}):null;
     return {session:s,req:q,ot:o};
   }
   var pendientes=components.filter(function(c){ return !c.stock_item_id; });
   async function aprobarValor(c){
-    var ev=evalDe(c.id); if(!ev){ avisar('⛗ Primero evalúa el componente',T.danger); return; }
-    var v=valDe(ev.id); if(!v){ avisar('⛗ Sin valoración',T.danger); return; }
+    var ev=evalDe(c.id); if(!ev){ avisar('⛔ Primero evalúa el componente',T.danger); return; }
+    var v=valDe(ev.id); if(!v){ avisar('⛔ Sin valoración',T.danger); return; }
     var alto=(v.approved_value>=100000)||ev.safety_approved;
     if(alto){
       if(!window.confirm('Valor alto o pieza de seguridad: requiere DOBLE aprobación (RN-08/RN-18). ¿Confirmar segunda aprobación?')) return;
@@ -44,11 +45,11 @@ export default function ModRecuperacion(props){
   }
   async function ingresarStock(c){
     var ev=evalDe(c.id); var v=ev?valDe(ev.id):null;
-    if(ev&&ev.test_result==='fail'){ avisar('⛗ Pieza no segura: bloqueada (RN-08)',T.danger); return; }
+    if(ev&&ev.test_result==='fail'){ avisar('⛔ Pieza no segura: bloqueada (RN-08)',T.danger); return; }
     var sku='REC-'+String(c.id).padStart(5,'0');
     var o=origen(c).ot;
     var item=await supabase.from('stock_items').insert([{
-      sku:sku, name:c.name, type:'recovered', condition_grade:ev?ev.grade:'B',
+      sku:sku, name:c.name, stock_type:'recovered', condition_grade:ev?ev.grade:'B',
       quantity:c.quantity, unit_cost:0, unit_price:v?v.approved_value:0, warranty_days:90,
       source_asset_id:o?o.asset_id:null, source_service_order_id:o?o.id:null,
       source_component_id:c.id, status:'available', qr_code:sku
