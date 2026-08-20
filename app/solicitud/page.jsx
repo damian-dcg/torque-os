@@ -160,7 +160,7 @@ export default function Solicitud(){
           {comunasDe.map(function(c){ return <option key={c.id} value={c.nombre}>{c.nombre}</option>; })}
         </select>
         <input style={inp} placeholder="DIRECCIÓN (CALLE Y NÚMERO) *" value={f.direccion} onChange={function(e){ set('direccion',up(e.target.value)); }}/>
-        <input style={inp} placeholder="NÚMERO DE TELÉFONO (EJ: +56912345678) *" value={f.telefono} onChange={function(e){ set('telefono',e.target.value); }}/>
+        <input style={inp} placeholder="NÚMERO DE TELÉFONO (+56912345678) *" value={f.telefono} onChange={function(e){ set('telefono',e.target.value); }}/>
         <input style={inpMail} type="email" placeholder="CORREO ELECTRÓNICO *" value={f.mail} onChange={function(e){ set('mail',e.target.value); }}/>
 
         <label style={lab}>TIPO DE PRODUCTO *</label>
