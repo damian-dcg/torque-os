@@ -120,7 +120,7 @@ export default function ModMaestros(props) {
         onAdd={function () { add('regions', { codigo: 'XX', nombre: 'NUEVA REGIÓN', zona: 'centro' }); }}
         onDel={function (r) { del('regions', r.id); }} />
       <Tabla titulo="9 · Malls y tiendas (lugares de servicio)" rows={d.lugs}
-        cols={[{ k: 'tipo', label: 'Tipo', type: 'select', w: 100, opts: [['mall', 'Mall'], ['retail', 'Retail'], ['tienda', 'Tienda'], ['otro', 'Otro']] }, { k: 'nombre', label: 'Nombre', w: 220 }, { k: 'region_id', label: 'Región', type: 'select', num: true, w: 150, opts: regOpts }, { k: 'comuna', label: 'Comuna', w: 130 }, { k: 'address', label: 'Dirección', w: 240 }, { k: 'activo', label: 'Activo', type: 'check' }]}
+        cols={[{ k: 'tipo', label: 'Tipo', type: 'select', w: 100, opts: [['mall', 'Mall'], ['retail', 'Retail'], ['tienda', 'Tienda'], ['bodega', 'Bodega'], ['otro', 'Otro']] }, { k: 'nombre', label: 'Nombre', w: 220 }, { k: 'region_id', label: 'Región', type: 'select', num: true, w: 150, opts: regOpts }, { k: 'comuna', label: 'Comuna', w: 130 }, { k: 'address', label: 'Dirección', w: 240 }, { k: 'activo', label: 'Activo', type: 'check' }]}
         onEdit={function (r, k, v) { save('lugares', { [k]: v }, r.id); }}
         onAdd={function () { add('lugares', { tipo: 'retail', nombre: 'NUEVO LUGAR', activo: true }); }}
         onDel={function (r) { del('lugares', r.id); }} />
