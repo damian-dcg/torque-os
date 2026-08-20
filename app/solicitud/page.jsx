@@ -1,107 +1,146 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { T, S } from '../../lib/ui';
 
-const TEAL='#3ec6b2'; const NEGRO='#1c1c1c'; const FONDO='#f7f9fa';
-const inp={width:'100%',padding:'15px 22px',borderRadius:999,border:'1px solid #c9d2d8',background:'#fff',fontSize:15,marginBottom:14,boxSizing:'border-box',color:'#222'};
-const lab={fontSize:13,color:'#5a6a72',display:'block',margin:'4px 0 6px 18px'};
-const REGIONS=[['AP','Arica y Parinacota'],['TA','Tarapacá'],['AN','Antofagasta'],['AT','Atacama'],['CO','Coquimbo'],['VA','Valparaíso'],['RM','Metropolitana'],['LI',"O'Higgins"],['ML','Maule'],['NB','Ñuble'],['BB','Biobío'],['AR','La Araucanía'],['LR','Los Ríos'],['LL','Los Lagos'],['AY','Aysén'],['MG','Magallanes']];
-const PROD=['BICICLETA','BICICLETA ELECTRICA','MAQUINA','SCOOTER ELECTRICO','ACCESORIO'];
+var SVC_SHORT={'ARMADO':'ARM','GARANTIA':'GAR','EVALUACION':'EVA','MANTENCION':'MAN','POST VENTA':'POS','RECLAMO':'REC','DEVOLUCION':'DEV','CAMBIO':'CAM','DESPACHO':'DES','LEVANTAMIENTO':'LEV','RETIRO':'RET','ANULACION':'ANU'};
+var FAM_ELECTRICAS=['BICICLETA ELECTRICA','SCOOTER ELECTRICO','TROTADORA'];
+var FLOWS=[['armado_final','Armado · cliente final'],['armado_retail','Armado · retail / volumen'],['garantia','Garantía'],['postventa','Post-venta / reparación']];
 
 export default function Solicitud(){
-  const [flujo,setFlujo]=useState('armado');
-  const [f,setF]=useState({nombre:'',rut:'',region:'',comuna:'',direccion:'',telefono:'',email:'',producto:'BICICLETA',modelo:'',boleta:'',fecha:'',tienda:'',cantidad:'1',detalle:''});
-  const [file,setFile]=useState(null);
-  const [skus,setSkus]=useState([]);
-  const [busy,setBusy]=useState(false); const [ok,setOk]=useState(null); const [err,setErr]=useState('');
-  const [hp,setHp]=useState(''); const t0=useRef(Date.now());
-  useEffect(function(){
-    (async function(){
-      var r=await Promise.all([supabase.from('product_catalog').select('sku,model').limit(2000),supabase.from('parts').select('codigo,nombre').limit(2000)]);
-      var set={};
-      (r[0].data||[]).forEach(function(x){ if(x.sku) set[x.sku+' · '+(x.model||'')]=1; });
-      (r[1].data||[]).forEach(function(x){ if(x.codigo) set[x.codigo+' · '+(x.nombre||'')]=1; });
-      setSkus(Object.keys(set));
-    })();
-  },[]);
-  async function enviar(e){
-    e.preventDefault();
-    if(hp||Date.now()-t0.current<3000){ setOk(5000); return; }
-    setBusy(true); setErr('');
-    try{
-      var boletaUrl=null;
-      if(file){ var path='boleta-'+Date.now()+'-'+file.name; var up=await supabase.storage.from('boletas').upload(path,file); if(!up.error) boletaUrl=supabase.storage.from('boletas').getPublicUrl(path).data.publicUrl; }
-      var tipo_ot=flujo==='armado'?(Number(f.cantidad)>1?'armado_volumen':'armado_unidad'):flujo==='garantia'?'repuesto_garantia':flujo==='retail'?'armado_volumen':'servicio';
-      var d=await supabase.rpc('portal_solicitud',{p:{
-        nombre:f.nombre,rut:f.rut,region:f.region,direccion:(f.direccion||'')+', '+f.comuna,
-        telefono:f.telefono,email:f.email,flujo:flujo,tipo_ot:tipo_ot,
-        canal_cliente:flujo==='retail'?'retail':'final',
-        producto:f.producto,modelo:f.modelo,boleta:f.boleta,fecha_compra:f.fecha,tienda:f.tienda,
-        cantidad:Number(f.cantidad)||1,boleta_url:boletaUrl,detalle:f.detalle||('Solicitud '+flujo+' · '+f.producto+' '+f.modelo)
-      }});
-      if(d.error) throw new Error(d.error.message);
-      setOk(d.data.ot_number);
-    }catch(ex){ setErr('⛗ '+ex.message); }
-    setBusy(false);
+  var [flow,setFlow]=useState('armado_final');
+  var [regs,setRegs]=useState([]); var [coms,setComs]=useState([]); var [lugs,setLugs]=useState([]);
+  var [fams,setFams]=useState([]); var [prods,setProds]=useState([]); var [sla,setSla]=useState([]);
+  var [f,setF]=useState({nombre:'',rut:'',telefono:'',whatsapp:'',email:'',region_id:'',comuna:'',direccion:'',lugar:'domicilio',lugar_id:'',familia_id:'',modelo:'',serie:'',cantidad:1,electrica:false,boleta:'',fecha_compra:'',tienda:'',falla:''});
+  var [done,setDone]=useState(null); var [busy,setBusy]=useState(false); var [err,setErr]=useState('');
+
+  useEffect(function(){ (async function(){
+    var r=await Promise.all([
+      supabase.from('regions').select('*').order('id'),
+      supabase.from('comunas').select('*').order('nombre'),
+      supabase.from('lugares').select('*').order('nombre'),
+      supabase.from('product_families').select('*').order('id'),
+      supabase.from('product_catalog').select('*'),
+      supabase.from('sla_matrix').select('*')
+    ]);
+    setRegs(r[0].data||[]); setComs(r[1].data||[]); setLugs(r[2].data||[]);
+    setFams(r[3].data||[]); setProds(r[4].data||[]); setSla(r[5].data||[]);
+  })(); },[]);
+
+  function set(k,v){ setF(function(o){ var n=Object.assign({},o); n[k]=v; return n; }); }
+  function onFamilia(v){
+    var name=''; fams.forEach(function(x){ if(x.id===Number(v)) name=x.name||''; });
+    setF(function(o){ var n=Object.assign({},o); n.familia_id=v; n.electrica=FAM_ELECTRICAS.indexOf(name)>=0; return n; });
   }
-  return (
-    <main style={{minHeight:'100vh',background:FONDO,fontFamily:"system-ui,'Segoe UI',Arial,sans-serif"}}>
-      <header style={{background:NEGRO,padding:'26px 40px',display:'flex',alignItems:'center',gap:14}}>
-        <div style={{color:TEAL,fontWeight:900,fontSize:30,letterSpacing:2}}>BIANCHI</div>
-        <div style={{color:'#fff',fontSize:13,opacity:.8}}>Servicio Técnico Oficial</div>
-        <a href="/seguimiento" style={{marginLeft:'auto',color:'#fff',fontSize:13,textDecoration:'none',border:'1px solid '+TEAL,borderRadius:999,padding:'8px 18px'}}>Seguir mi OT</a>
-      </header>
-      <div style={{maxWidth:760,margin:'0 auto',padding:'40px 18px'}}>
-        <h1 style={{textAlign:'center',fontSize:34,color:NEGRO,margin:'0 0 6px'}}>SERVICIO TÉCNICO BIANCHI</h1>
-        <p style={{textAlign:'center',color:'#5a6a72',margin:'0 0 26px'}}>Tu Bianchi lista para usar</p>
-        <div style={{display:'flex',gap:8,justifyContent:'center',flexWrap:'wrap',marginBottom:24}}>
-          {[['armado','Armado'],['garantia','Garantía'],['postventa','Post-venta'],['retail','Retail / Volumen']].map(function(k){
-            return <button key={k[0]} onClick={function(){ setFlujo(k[0]); }} style={{borderRadius:999,padding:'10px 20px',border:'1.5px solid '+TEAL,background:flujo===k[0]?TEAL:'#fff',color:flujo===k[0]?'#fff':TEAL,fontWeight:700,fontSize:14,cursor:'pointer'}}>{k[1]}</button>;
-          })}
-        </div>
-        {ok? (
-          <div style={{background:'#fff',border:'2px solid '+TEAL,borderRadius:20,padding:34,textAlign:'center'}}>
-            <h2 style={{color:TEAL,margin:'0 0 8px'}}>✅ Solicitud recibida</h2>
-            <p style={{color:'#333',fontSize:17}}>Tu número de orden es <b>OT-{ok}</b>.</p>
-            <p style={{color:'#5a6a72',fontSize:14}}>Guárdalo para hacer seguimiento.</p>
-            <a href="/seguimiento" style={{display:'inline-block',marginTop:10,background:TEAL,color:'#fff',borderRadius:999,padding:'13px 28px',textDecoration:'none',fontWeight:800}}>Hacer seguimiento</a>
-          </div>) : (
-          <form onSubmit={enviar} style={{background:'#fff',borderRadius:24,padding:'30px 26px',boxShadow:'0 6px 24px rgba(0,0,0,.06)'}}>
-            <input type="text" style={{display:'none'}} value={hp} onChange={function(e){ setHp(e.target.value); }} tabIndex={-1} autoComplete="off"/>
-            <label style={lab}>Nombre Completo / Razón Social *</label>
-            <input style={inp} required value={f.nombre} onChange={function(e){ setF(Object.assign({},f,{nombre:e.target.value})); }}/>
-            <label style={lab}>RUT *</label>
-            <input style={inp} required value={f.rut} onChange={function(e){ setF(Object.assign({},f,{rut:e.target.value})); }} placeholder="12.345.678-9"/>
-            <label style={lab}>Región *</label>
-            <select style={inp} required value={f.region} onChange={function(e){ setF(Object.assign({},f,{region:e.target.value})); }}><option value="">Selecciona una región *</option>{REGIONS.map(function(r){ return <option key={r[0]} value={r[0]}>{r[1]}</option>; })}</select>
-            <label style={lab}>Comuna *</label>
-            <input style={inp} required value={f.comuna} onChange={function(e){ setF(Object.assign({},f,{comuna:e.target.value})); }}/>
-            <label style={lab}>Dirección (Calle y Número) *</label>
-            <input style={inp} required value={f.direccion} onChange={function(e){ setF(Object.assign({},f,{direccion:e.target.value})); }}/>
-            <label style={lab}>Número de teléfono *</label>
-            <input style={inp} required value={f.telefono} onChange={function(e){ setF(Object.assign({},f,{telefono:e.target.value})); }}/>
-            <label style={lab}>Correo electrónico *</label>
-            <input style={inp} type="email" required value={f.email} onChange={function(e){ setF(Object.assign({},f,{email:e.target.value})); }}/>
-            <label style={lab}>Tipo de Producto *</label>
-            <select style={inp} required value={f.producto} onChange={function(e){ setF(Object.assign({},f,{producto:e.target.value})); }}>{PROD.map(function(p){ return <option key={p}>{p}</option>; })}</select>
-            <label style={lab}>Modelo o SKU del Producto * (escribe o elige de la lista)</label>
-            <input style={inp} required list="lista-skus" value={f.modelo} onChange={function(e){ setF(Object.assign({},f,{modelo:e.target.value})); }} placeholder="Ej: STONE 29 SX"/>
-            <datalist id="lista-skus">{skus.map(function(s){ return <option key={s} value={s.split(' · ')[0]}>{s}</option>; })}</datalist>
-            {flujo==='retail'? <div><label style={lab}>Cantidad de unidades *</label><input style={inp} type="number" min="1" required value={f.cantidad} onChange={function(e){ setF(Object.assign({},f,{cantidad:e.target.value})); }}/></div> : null}
-            {flujo!=='retail'? <>
-              <label style={lab}>Número de Boleta / Factura *</label>
-              <input style={inp} required value={f.boleta} onChange={function(e){ setF(Object.assign({},f,{boleta:e.target.value})); }}/>
-              <label style={lab}>Fecha de Compra *</label>
-              <input style={inp} type="date" required value={f.fecha} onChange={function(e){ setF(Object.assign({},f,{fecha:e.target.value})); }}/>
-              <label style={lab}>Tienda de Compra *</label>
-              <input style={inp} required value={f.tienda} onChange={function(e){ setF(Object.assign({},f,{tienda:e.target.value})); }}/>
-            </> : null}
-            {(flujo==='garantia'||flujo==='postventa')? <div><label style={lab}>Describe la falla o servicio requerido *</label><textarea style={{...inp,minHeight:90,borderRadius:18}} required value={f.detalle} onChange={function(e){ setF(Object.assign({},f,{detalle:e.target.value})); }}/></div> : null}
-            {flujo!=='retail'? <div><label style={lab}>Adjuntar Boleta (PDF, JPG, PNG) *</label><input style={{...inp,borderRadius:18}} type="file" accept=".pdf,.jpg,.jpeg,.png" required onChange={function(e){ setFile(e.target.files[0]); }}/></div> : null}
-            <p style={{color:'#5a6a72',fontSize:13}}>Todos los campos marcados con (*) son obligatorios.</p>
-            {err? <p style={{color:'#d33',fontSize:14}}>{err}</p> : null}
-            <button disabled={busy} style={{background:TEAL,color:'#fff',borderRadius:999,padding:'15px 30px',border:0,fontWeight:800,fontSize:16,cursor:'pointer',opacity:busy?0.6:1}}>{busy?'Enviando…':'Enviar Solicitud'}</button>
-          </form>)}
+  var fam=null; fams.forEach(function(x){ if(x.id===Number(f.familia_id)) fam=x; });
+  var tipoEq=fam?(f.electrica&&fam.tipo==='BICICLETA'?'BICICLETA ELECTRICA':f.electrica&&fam.tipo==='SCOOTER'?'SCOOTER ELECTRICO':fam.tipo):'';
+  var svc=flow==='garantia'?'GARANTIA':flow==='postventa'?'POST VENTA':'ARMADO';
+  var mod=Number(f.cantidad)>1?'VOL':(tipoEq==='MAQUINA'?(f.electrica?'ME':'MC'):(tipoEq==='BICICLETA ELECTRICA'||tipoEq==='SCOOTER ELECTRICO'?'BE':'BU'));
+  var ck='CK-'+(SVC_SHORT[svc]||'REP')+'-'+mod;
+  var slaRow=null; sla.forEach(function(x){ if(x.tipo_servicio===svc&&x.tipo_equipo===tipoEq) slaRow=x; });
+  var slaDias=(slaRow&&slaRow.dias)||15;
+  var promesa=new Date(Date.now()+slaDias*86400000).toISOString().slice(0,10);
+  var comunasDe=coms.filter(function(c){ return c.region_id===Number(f.region_id); });
+  var lugaresDe=lugs.filter(function(l){ return l.activo!==false&&(!f.region_id||!l.region_id||l.region_id===Number(f.region_id)); });
+  var modelos=prods.filter(function(p){ return p.family_id===Number(f.familia_id); });
+
+  async function enviar(){
+    setErr(''); if(!f.nombre){ setErr('El nombre es obligatorio.'); return; }
+    setBusy(true);
+    var rut=f.rut||('SINRUT-'+Date.now());
+    var ci=await supabase.from('customers').upsert([{tenant_id:'dcg',nombre:f.nombre,rut:rut,tipo:flow==='armado_retail'?'retail':'final',telefono:f.telefono||null,whatsapp:f.whatsapp||null,email:f.email||null,region_id:f.region_id?Number(f.region_id):null,comuna:f.comuna||null,direccion:f.direccion||null}],{onConflict:'rut'}).select();
+    var cid=ci.data&&ci.data[0]?ci.data[0].id:null;
+    if(!cid){ setErr('No se pudo crear el cliente.'); setBusy(false); return; }
+    var num='S_'+Date.now().toString().slice(-5);
+    var wi=await supabase.from('work_orders').insert([{
+      tenant_id:'dcg',ext_id:num,ot_number:num,customer_id:cid,
+      tipo:svc==='ARMADO'?'armado_unidad':svc==='GARANTIA'?'repuesto_garantia':'servicio',
+      tipo_equipo:tipoEq||null,modalidad:mod,estado:'Ingresada',canal:'publico',prioridad:'media',
+      descripcion:f.falla||('Solicitud '+flow),region_id:f.region_id?Number(f.region_id):null,
+      comuna:f.comuna||null,direccion:f.direccion||null,lugar_tipo:f.lugar,lugar_id:f.lugar_id?Number(f.lugar_id):null,
+      modelo:f.modelo||null,modelo_limpio:String(f.modelo||'').replace(/[\s.-]/g,'').toUpperCase()||null,
+      cantidad_unidades:Number(f.cantidad)||1,checklist_code:ck,fecha_promesa:promesa,quien_registra:'portal',
+      datos_portal:{flujo:flow,boleta:f.boleta||null,fecha_compra:f.fecha_compra||null,tienda:f.tienda||null,producto:fam?fam.name:null,modelo_ot:f.modelo||null,falla:f.falla||null,cantidad:Number(f.cantidad)||1,serial:f.serie||null},
+      kpi:{tipo_servicio:svc,tipo_equipo:tipoEq}
+    }]).select();
+    setBusy(false);
+    if(wi.error){ setErr(wi.error.message); return; }
+    setDone(num);
+  }
+
+  if(done) return (
+    <main style={S.main}><div style={S.wrap}>
+      <div style={{...S.card,maxWidth:560,margin:'40px auto',textAlign:'center'}}>
+        <h1 style={S.h1}>✅ Solicitud recibida</h1>
+        <p style={{...S.sub,margin:'10px 0'}}>Tu orden es <b style={{color:T.brand}}>{done}</b>. Promesa de atención: <b>{promesa}</b>.</p>
+        <p style={S.sub}>Haz seguimiento en <a href="/seguimiento" style={{color:T.info}}>/seguimiento</a> con tu RUT o el número de orden.</p>
       </div>
-    </main>);
+    </div></main>
+  );
+
+  return (
+    <main style={S.main}><div style={{...S.wrap,maxWidth:760}}>
+      <h1 style={S.h1}>TORQUE·OS · Solicitud de Servicio</h1>
+      <p style={S.sub}>Bianchi Chile S.A. · Servicio Técnico</p>
+      <div style={S.card}>
+        <label style={S.label}>Tipo de solicitud</label>
+        <select style={S.input} value={flow} onChange={function(e){ setFlow(e.target.value); }}>
+          {FLOWS.map(function(x){ return <option key={x[0]} value={x[0]}>{x[1]}</option>; })}
+        </select>
+        <label style={S.label}>Nombre / razón social *</label>
+        <input style={S.input} value={f.nombre} onChange={function(e){ set('nombre',e.target.value); }}/>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          <input style={S.input} placeholder="RUT" value={f.rut} onChange={function(e){ set('rut',e.target.value); }}/>
+          <input style={S.input} placeholder="Teléfono" value={f.telefono} onChange={function(e){ set('telefono',e.target.value); }}/>
+          <input style={S.input} placeholder="WhatsApp" value={f.whatsapp} onChange={function(e){ set('whatsapp',e.target.value); }}/>
+          <input style={S.input} placeholder="Email" value={f.email} onChange={function(e){ set('email',e.target.value); }}/>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          <select style={S.input} value={f.region_id} onChange={function(e){ set('region_id',e.target.value); set('comuna',''); set('lugar_id',''); }}>
+            <option value="">— Región —</option>
+            {regs.map(function(r){ return <option key={r.id} value={r.id}>{r.nombre}</option>; })}
+          </select>
+          <select style={S.input} value={f.comuna} onChange={function(e){ set('comuna',e.target.value); }} disabled={!f.region_id}>
+            <option value="">{f.region_id?'— Comuna —':'Primero región'}</option>
+            {comunasDe.map(function(c){ return <option key={c.id} value={c.nombre}>{c.nombre}</option>; })}
+          </select>
+        </div>
+        <input style={S.input} placeholder="Dirección" value={f.direccion} onChange={function(e){ set('direccion',e.target.value); }}/>
+        <label style={S.label}>¿Dónde se realiza el servicio?</label>
+        <select style={S.input} value={f.lugar} onChange={function(e){ set('lugar',e.target.value); set('lugar_id',''); }}>
+          <option value="domicilio">Domicilio del cliente</option><option value="taller">Taller central</option><option value="lugar">Mall / tienda</option>
+        </select>
+        {f.lugar==='lugar'? <select style={S.input} value={f.lugar_id} onChange={function(e){ set('lugar_id',e.target.value); }}>
+          <option value="">— Selecciona mall / tienda —</option>
+          {lugaresDe.map(function(l){ return <option key={l.id} value={l.id}>{l.tipo==='mall'?'🛍 ':'🏬 '}{l.nombre}{l.comuna?' · '+l.comuna:''}</option>; })}
+        </select> : null}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          <select style={S.input} value={f.familia_id} onChange={function(e){ onFamilia(e.target.value); }}>
+            <option value="">— Familia —</option>
+            {fams.map(function(x){ return <option key={x.id} value={x.id}>{x.name} ({x.tipo})</option>; })}
+          </select>
+          <select style={S.input} value={f.modelo} onChange={function(e){ set('modelo',e.target.value); }}>
+            <option value="">— Modelo (opcional) —</option>
+            {modelos.map(function(p){ return <option key={p.id} value={p.model}>{p.model} · {p.sku}</option>; })}
+          </select>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          <input style={S.input} placeholder="N° de serie" value={f.serie} onChange={function(e){ set('serie',e.target.value); }}/>
+          <input style={S.input} type="number" min="1" placeholder="Cantidad" value={f.cantidad} onChange={function(e){ set('cantidad',e.target.value); }}/>
+        </div>
+        <label style={S.label}><input type="checkbox" checked={f.electrica} onChange={function(e){ set('electrica',e.target.checked); }}/> Equipo eléctrico</label>
+        {flow==='armado_final'||flow==='garantia'? <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+          <input style={S.input} placeholder="N° boleta" value={f.boleta} onChange={function(e){ set('boleta',e.target.value); }}/>
+          <input style={S.input} type="date" value={f.fecha_compra} onChange={function(e){ set('fecha_compra',e.target.value); }}/>
+          <input style={{...S.input,gridColumn:'1/-1'}} placeholder="Tienda de compra" value={f.tienda} onChange={function(e){ set('tienda',e.target.value); }}/>
+        </div> : null}
+        {flow==='garantia'||flow==='postventa'? <input style={S.input} placeholder="Falla reportada" value={f.falla} onChange={function(e){ set('falla',e.target.value); }}/> : null}
+        <div style={{...S.card,background:T.surface2,padding:10}}>
+          <p style={{margin:'2px 0',fontSize:13}}>Checklist automático: <b>{ck}</b> · Promesa: <b>{promesa}</b> (SLA {slaDias} días)</p>
+        </div>
+        {err? <p style={{color:T.danger,fontWeight:700}}>{err}</p> : null}
+        <button style={S.btn(T.ok)} disabled={busy} onClick={enviar}>{busy?'Enviando…':'Enviar solicitud'}</button>
+      </div>
+    </div></main>
+  );
 }
