@@ -125,7 +125,7 @@ export default function Solicitud(){
           <div style={{fontSize:44}}>✅</div>
           <h1 style={h1}>SOLICITUD RECIBIDA</h1>
           <p style={{fontSize:16,color:'#333',margin:'10px 0 4px'}}>TU ORDEN ES <b style={{color:'#0E8074'}}>{done}</b></p>
-          <p style={{fontSize:13,color:'#5A6470',margin:'0 0 22px'}}>TU CASO YA FUE NOTIFICADO A NUESTRO EQUIPO (BUZÓN DEL AGENTE).</p>
+          <p style={{fontSize:13,color:'#5A6470',margin:'0 0 22px'}}>TU CASO YA FUE NOTIFICADO A NUESTRO EQUIPO, UNO DE NUESTROS AGENTES TE CONTACTARÁ).</p>
           <a href="/seguimiento" style={btn}>SEGUIMIENTO DE MI CASO</a>
         </div>
       </div>
