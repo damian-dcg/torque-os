@@ -7,7 +7,13 @@ function Celda(props) {
   var col = props.col, row = props.row, v = row[col.k];
   if (col.type === 'check') return <input type="checkbox" checked={!!v} onChange={function (e) { props.onEdit(row, col.k, e.target.checked); }} />;
   if (col.type === 'ro') return <span style={{ fontSize: 12, fontWeight: 700 }}>{v == null ? '' : String(v)}</span>;
-  return <input style={{ ...S.input, width: col.w || 110, padding: '4px 6px', fontSize: 12 }} type={col.type === 'num' ? 'number' : 'text'} value={v == null ? '' : v} onChange={function (e) { props.onEdit(row, col.k, col.type === 'num' ? Number(e.target.value) : e.target.value); }} />;
+  if (col.type === 'select') return (
+    <select style={{ ...S.input, width: col.w || 140, padding: '4px 6px', fontSize: 12, marginBottom: 0 }} value={v == null ? '' : String(v)} onChange={function (e) { props.onEdit(row, col.k, e.target.value === '' ? null : (col.num ? Number(e.target.value) : e.target.value)); }}>
+      <option value="">—</option>
+      {(col.opts || []).map(function (o) { return <option key={o[0]} value={o[0]}>{o[1]}</option>; })}
+    </select>
+  );
+  return <input style={{ ...S.input, width: col.w || 110, padding: '4px 6px', fontSize: 12, marginBottom: 0 }} type={col.type === 'num' ? 'number' : 'text'} value={v == null ? '' : v} onChange={function (e) { props.onEdit(row, col.k, col.type === 'num' ? Number(e.target.value) : e.target.value); }} />;
 }
 
 function Tabla(props) {
@@ -38,7 +44,7 @@ function Tabla(props) {
 
 export default function ModMaestros(props) {
   var avisar = props.avisar || function () {};
-  var [d, setD] = useState({ fams: [], servs: [], prices: [], mant: [], tecs: [], sla: [], gar: [], regs: [] });
+  var [d, setD] = useState({ fams: [], servs: [], prices: [], mant: [], tecs: [], sla: [], gar: [], regs: [], lugs: [] });
 
   function cargar() {
     (async function () {
@@ -50,7 +56,8 @@ export default function ModMaestros(props) {
         supabase.from('tech_rates').select('*').order('id'),
         supabase.from('sla_matrix').select('*').order('id'),
         supabase.from('warranty_rules').select('*'),
-        supabase.from('regions').select('*').order('id')
+        supabase.from('regions').select('*').order('id'),
+        supabase.from('lugares').select('*').order('nombre')
       ]);
       var servs = q[1].data || [], fams = q[0].data || [];
       var sName = {}, fName = {};
@@ -58,7 +65,7 @@ export default function ModMaestros(props) {
       fams.forEach(function (f) { fName[f.id] = f.name; });
       var prices = (q[2].data || []).map(function (p) { var o = Object.assign({}, p); o.servicio = sName[p.service_type_id] || ('#' + p.service_type_id); return o; });
       var gar = (q[6].data || []).map(function (g) { var o = Object.assign({}, g); o.familia = fName[g.family_id] || ('#' + g.family_id); return o; });
-      setD({ fams: fams, servs: servs, prices: prices, mant: q[3].data || [], tecs: q[4].data || [], sla: q[5].data || [], gar: gar, regs: q[7].data || [] });
+      setD({ fams: fams, servs: servs, prices: prices, mant: q[3].data || [], tecs: q[4].data || [], sla: q[5].data || [], gar: gar, regs: q[7].data || [], lugs: q[8].data || [] });
     })();
   }
   useEffect(function () { cargar(); }, []);
@@ -72,6 +79,7 @@ export default function ModMaestros(props) {
   function del(tabla, id) {
     (async function () { var r = await supabase.from(tabla).delete().eq('id', id); if (r.error) avisar('⛔ ' + r.error.message, T.danger); else cargar(); })();
   }
+  var regOpts = d.regs.map(function (r) { return [String(r.id), r.nombre]; });
 
   return (
     <div>
@@ -111,6 +119,11 @@ export default function ModMaestros(props) {
         onEdit={function (r, k, v) { save('regions', { [k]: v }, r.id); }}
         onAdd={function () { add('regions', { codigo: 'XX', nombre: 'NUEVA REGIÓN', zona: 'centro' }); }}
         onDel={function (r) { del('regions', r.id); }} />
+      <Tabla titulo="9 · Malls y tiendas (lugares de servicio)" rows={d.lugs}
+        cols={[{ k: 'tipo', label: 'Tipo', type: 'select', w: 100, opts: [['mall', 'Mall'], ['retail', 'Retail'], ['tienda', 'Tienda'], ['otro', 'Otro']] }, { k: 'nombre', label: 'Nombre', w: 220 }, { k: 'region_id', label: 'Región', type: 'select', num: true, w: 150, opts: regOpts }, { k: 'comuna', label: 'Comuna', w: 130 }, { k: 'address', label: 'Dirección', w: 240 }, { k: 'activo', label: 'Activo', type: 'check' }]}
+        onEdit={function (r, k, v) { save('lugares', { [k]: v }, r.id); }}
+        onAdd={function () { add('lugares', { tipo: 'retail', nombre: 'NUEVO LUGAR', activo: true }); }}
+        onDel={function (r) { del('lugares', r.id); }} />
     </div>
   );
 }
