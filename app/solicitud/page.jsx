@@ -5,10 +5,10 @@ import { supabase } from '../../lib/supabase';
 var SVC_SHORT={'ARMADO':'ARM','GARANTIA':'GAR','POST VENTA':'POS'};
 var FAM_ELECTRICAS=['BICICLETA ELECTRICA','SCOOTER ELECTRICO','TROTADORA'];
 var FLOWS={
-  final:{label:'ARMADO CLIENTE FINAL',svc:'ARMADO',boleta:true,compra:true,modelo:true,cantidad:false,lugar:false,falla:false,ot:false},
+  final:{label:'ARMADO CLIENTE',svc:'ARMADO',boleta:true,compra:true,modelo:true,cantidad:false,lugar:false,falla:false,ot:false},
   retail:{label:'RETAIL / VOLUMEN',svc:'ARMADO',boleta:false,compra:false,modelo:false,cantidad:true,lugar:true,falla:false,ot:false},
   garantia:{label:'GARANTÍA',svc:'GARANTIA',boleta:true,compra:true,modelo:true,cantidad:false,lugar:false,falla:true,ot:true},
-  post:{label:'POST GARANTÍA',svc:'POST VENTA',boleta:false,compra:false,modelo:true,cantidad:false,lugar:false,falla:true,ot:false}
+  post:{label:'POST VENTA',svc:'POST VENTA',boleta:false,compra:false,modelo:true,cantidad:false,lugar:false,falla:true,ot:false}
 };
 var wrap={minHeight:'100vh',background:'#F4F6F8',fontFamily:"'Segoe UI',system-ui,Arial,sans-serif",display:'flex',flexDirection:'column'};
 var header={background:'#141414',padding:'16px 22px',display:'flex',alignItems:'center'};
@@ -169,7 +169,7 @@ export default function Solicitud(){
           {fams.map(function(x){ return <option key={x.id} value={x.id}>{x.name} ({x.tipo})</option>; })}
         </select>
         {C.modelo? <div>
-          <input style={inp} list="lista-modelos" placeholder="MODELO O SKU DEL PRODUCTO *" value={f.modelo} onChange={function(e){ set('modelo',up(e.target.value)); }}/>
+          <input style={inp} list="lista-modelos" placeholder="MODELO DE PRODUCTO *" value={f.modelo} onChange={function(e){ set('modelo',up(e.target.value)); }}/>
           <datalist id="lista-modelos">{modelos.map(function(p){ return <option key={p.id} value={p.model}/>; })}</datalist>
         </div> : null}
         {C.cantidad? <input style={inp} type="number" min="1" placeholder="CANTIDAD DE PRODUCTOS *" value={f.cantidad} onChange={function(e){ set('cantidad',e.target.value); }}/> : null}
