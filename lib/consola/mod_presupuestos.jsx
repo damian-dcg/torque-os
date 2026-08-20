@@ -12,6 +12,7 @@ function fdate(v){
 
 export default function ModPresupuestos(props){
   var avisar=props.avisar||function(){};
+  var tenant=props.tenant||null;
   var [rows,setRows]=useState([]);
   var [cust,setCust]=useState([]);
   var [f,setF]=useState({customer_id:'',items:[{concepto:'',cantidad:1,precio:0}]});
@@ -39,7 +40,11 @@ export default function ModPresupuestos(props){
     n[i]=Object.assign({},n[i],patch);
     setF(Object.assign({},f,{items:n}));
   }
-
+  function custDe(p){
+    var c=null;
+    cust.forEach(function(x){ if(x.id===p.customer_id) c=x; });
+    return c||{};
+  }
   async function crear(){
     if(!f.customer_id){ avisar('⛔ Cliente obligatorio',T.danger); return; }
     var lin=items.filter(function(x){ return x.concepto; });
@@ -48,18 +53,10 @@ export default function ModPresupuestos(props){
     if(e.error) avisar('⛔ '+e.error.message,T.danger);
     else { avisar('✅ Presupuesto creado',T.ok); setF({customer_id:'',items:[{concepto:'',cantidad:1,precio:0}]}); cargar(); }
   }
-
   async function setEstado(p,e){
     await supabase.from('presupuestos').update({estado:e}).eq('id',p.id);
     cargar();
   }
-
-  function custDe(p){
-    var c=null;
-    cust.forEach(function(x){ if(x.id===p.customer_id) c=x; });
-    return c||{};
-  }
-
   function pdfPres(p){
     var c=custDe(p);
     var its=p.items||[];
@@ -77,12 +74,10 @@ export default function ModPresupuestos(props){
       +'</tbody></table><script>window.print()</script></body></html>');
     w.document.close();
   }
-
   function gmailPres(p){
     var c=custDe(p);
     window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(c.email||'')+'&su='+encodeURIComponent('Presupuesto #'+p.id)+'&body='+encodeURIComponent('Hola '+(c.nombre||'')+',\nTe envío el presupuesto #'+p.id+' por '+fmtCLP(p.total||0)+'.\n\nSaludos.'),'_blank');
   }
-
   function waPres(p){
     var c=custDe(p);
     window.open('https://wa.me/?text='+encodeURIComponent('Hola '+(c.nombre||'')+', te envío presupuesto #'+p.id+' por '+fmtCLP(p.total||0)),'_blank');
@@ -116,30 +111,7 @@ export default function ModPresupuestos(props){
         </div>
         <button style={{...S.btn(T.ok),width:'auto',marginBottom:0,marginTop:10}} onClick={crear}>Crear</button>
       </div>
-
       <div style={S.card}>
         <h2 style={S.h2}>Presupuestos ({rows.length})</h2>
         {rows.map(function(p){
-          var c=custDe(p);
-          return (
-            <div key={p.id} style={{border:'1px solid '+T.border,borderRadius:10,padding:10,marginBottom:8,background:T.surface2}}>
-              <div style={{display:'flex',justifyContent:'space-between',gap:8,flexWrap:'wrap',alignItems:'center'}}>
-                <b>#{p.id} · {c.nombre||'—'}</b>
-                <select style={{...S.input,width:120,marginBottom:0}} value={p.estado||'borrador'} onChange={function(e){ setEstado(p,e.target.value); }}>
-                  <option value="borrador">borrador</option><option value="enviado">enviado</option><option value="aceptado">aceptado</option><option value="rechazado">rechazado</option>
-                </select>
-              </div>
-              <p style={{...S.sub,margin:'4px 0'}}>{(p.items||[]).length} ítems · Total {fmtCLP(p.total||0)} · {fdate(p.created_at)}</p>
-              <div style={{display:'flex',gap:6,marginTop:8,flexWrap:'wrap'}}>
-                <button style={{...S.btnO(T.info),width:'auto',marginBottom:0}} onClick={function(){ pdfPres(p); }}>📄 PDF</button>
-                <button style={{...S.btnO(T.warn),width:'auto',marginBottom:0}} onClick={function(){ gmailPres(p); }}>✉ Gmail</button>
-                <button style={{...S.btnO(T.ok),width:'auto',marginBottom:0}} onClick={function(){ waPres(p); }}>💬 WA</button>
-              </div>
-            </div>
-          );
-        })}
-        {rows.length===0? <p style={S.sub}>Sin presupuestos aún.</p> : null}
-      </div>
-    </div>
-  );
-}
+          var
