@@ -5,20 +5,21 @@ import { T, S } from '../ui';
 import { emit } from '../data';
 
 var SVC_SHORT = { 'ARMADO':'ARM','GARANTIA':'GAR','EVALUACION':'EVA','MANTENCION':'MAN','POST VENTA':'POS','RECLAMO':'REC','DEVOLUCION':'DEV','CAMBIO':'CAM','DESPACHO':'DES','LEVANTAMIENTO':'LEV','RETIRO':'RET','ANULACION':'ANU' };
+var FAM_ELECTRICAS = ['BICICLETA ELECTRICA', 'SCOOTER ELECTRICO', 'TROTADORA'];
 
 export default function ModNuevaOT(props) {
   var avisar = props.avisar || function () {};
   var onOk = props.onOk || function () {};
   var [cust, setCust] = useState([]); var [fams, setFams] = useState([]); var [prods, setProds] = useState([]);
   var [servs, setServs] = useState([]); var [sla, setSla] = useState([]); var [regs, setRegs] = useState([]);
-  var [coms, setComs] = useState([]); var [sats, setSats] = useState([]); var [users, setUsers] = useState([]);
-  var [carga, setCarga] = useState({}); var [busy, setBusy] = useState(false);
-  var [f, setF] = useState({ cliente: '', nuevo: false, nombre: '', rut: '', region_id: '', comuna: '', direccion: '', familia_id: '', modelo: '', serie: '', cantidad: 1, electrica: false, servicio: 'ARMADO', prioridad: 'media', descripcion: '', asig: '', fecha: '' });
+  var [coms, setComs] = useState([]); var [lugs, setLugs] = useState([]); var [sats, setSats] = useState([]);
+  var [users, setUsers] = useState([]); var [carga, setCarga] = useState({}); var [busy, setBusy] = useState(false);
+  var [f, setF] = useState({ cliente: '', nuevo: false, nombre: '', rut: '', region_id: '', comuna: '', direccion: '', lugar: 'domicilio', lugar_id: '', familia_id: '', modelo: '', serie: '', cantidad: 1, electrica: false, servicio: 'ARMADO', prioridad: 'media', descripcion: '', asig: '', fecha: '' });
   function set(k, v) { setF(function (o) { var n = Object.assign({}, o); n[k] = v; return n; }); }
   function onFamilia(v) {
     var name = '';
     fams.forEach(function (x) { if (x.id === Number(v)) name = x.name || ''; });
-    setF(function (o) { var n = Object.assign({}, o); n.familia_id = v; n.electrica = /ELECTRICA/.test(name) || name === 'TROTADORA'; return n; });
+    setF(function (o) { var n = Object.assign({}, o); n.familia_id = v; n.electrica = FAM_ELECTRICAS.indexOf(name) >= 0; return n; });
   }
 
   useEffect(function () { (async function () {
@@ -30,16 +31,17 @@ export default function ModNuevaOT(props) {
       supabase.from('sla_matrix').select('*'),
       supabase.from('regions').select('*').order('id'),
       supabase.from('comunas').select('*').order('nombre'),
+      supabase.from('lugares').select('*').order('nombre'),
       supabase.from('companies').select('*').eq('tipo', 'sat'),
       supabase.from('users').select('*'),
       supabase.from('work_orders').select('asignado_user_id,asignado_company_id,estado').limit(2000)
     ]);
     setCust(r[0].data || []); setFams(r[1].data || []); setProds(r[2].data || []);
     setServs((r[3].data || []).filter(function (s) { return s.active !== false; }));
-    setSla(r[4].data || []); setRegs(r[5].data || []); setComs(r[6].data || []);
-    setSats((r[7].data || []).filter(function (s) { return s.activo; }));
-    setUsers(r[8].data || []);
-    var c = {}; (r[9].data || []).forEach(function (o) {
+    setSla(r[4].data || []); setRegs(r[5].data || []); setComs(r[6].data || []); setLugs(r[7].data || []);
+    setSats((r[8].data || []).filter(function (s) { return s.activo; }));
+    setUsers(r[9].data || []);
+    var c = {}; (r[10].data || []).forEach(function (o) {
       if (o.estado === 'Cerrada') return;
       if (o.asignado_company_id) c['s' + o.asignado_company_id] = (c['s' + o.asignado_company_id] || 0) + 1;
       if (o.asignado_user_id) c['u' + o.asignado_user_id] = (c['u' + o.asignado_user_id] || 0) + 1;
@@ -59,6 +61,7 @@ export default function ModNuevaOT(props) {
   var fueraSLA = f.fecha && f.fecha > promesa;
   var modelos = prods.filter(function (p) { return p.family_id === Number(f.familia_id); });
   var comunasDe = coms.filter(function (c) { return c.region_id === Number(f.region_id); });
+  var lugaresDe = lugs.filter(function (l) { return l.activo !== false && (!f.region_id || !l.region_id || l.region_id === Number(f.region_id)); });
   var espReq = fam ? (fam.tipo === 'BICICLETA' ? 'bici' : fam.tipo === 'MAQUINA' ? 'fitness' : null) : null;
   var tecInternos = users.filter(function (u) { return u.rol === 'tecnico' || u.rol === 'tecnico_sat'; });
   var satsOrdenados = sats.map(function (s) {
@@ -88,6 +91,7 @@ export default function ModNuevaOT(props) {
         estado: asigC || asigU ? 'Asignada' : 'Ingresada', prioridad: f.prioridad, canal: 'interno',
         descripcion: f.descripcion || null, region_id: f.region_id ? Number(f.region_id) : null,
         comuna: f.comuna || null, direccion: f.direccion || null,
+        lugar_tipo: f.lugar, lugar_id: f.lugar_id ? Number(f.lugar_id) : null,
         modelo: f.modelo || null, modelo_limpio: (f.modelo || '').replace(/[\s.-]/g, '').toUpperCase() || null,
         cantidad_unidades: Number(f.cantidad) || 1, checklist_code: checklist,
         fecha_promesa: promesa, fecha_programada: f.fecha || null, quien_registra: 'consola',
@@ -100,7 +104,7 @@ export default function ModNuevaOT(props) {
       }
       emit(); onOk();
       avisar('✔ OT-' + (maxN + 1) + ' creada · checklist ' + checklist + (f.fecha ? ' · programada ' + f.fecha : ''), T.ok);
-      setF({ cliente: '', nuevo: false, nombre: '', rut: '', region_id: f.region_id, comuna: '', direccion: '', familia_id: '', modelo: '', serie: '', cantidad: 1, electrica: false, servicio: f.servicio, prioridad: 'media', descripcion: '', asig: '', fecha: '' });
+      setF({ cliente: '', nuevo: false, nombre: '', rut: '', region_id: f.region_id, comuna: '', direccion: '', lugar: 'domicilio', lugar_id: '', familia_id: '', modelo: '', serie: '', cantidad: 1, electrica: false, servicio: f.servicio, prioridad: 'media', descripcion: '', asig: '', fecha: '' });
     } catch (e) { avisar('⛔ ' + e.message, T.danger); }
     setBusy(false);
   }
@@ -108,7 +112,7 @@ export default function ModNuevaOT(props) {
   return (
     <div style={S.card}>
       <h2 style={S.h2}>Nueva OT (maestros definitivos)</h2>
-      <p style={S.sub}>1 Cliente · 2 Equipo · 3 Servicio · 4 Checklist + fechas · 5 Asignación</p>
+      <p style={S.sub}>1 Cliente · 2 Lugar y dirección · 3 Equipo · 4 Servicio · 5 Checklist + fechas · 6 Asignación</p>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div>
           <label style={S.label}>Cliente</label>
@@ -123,8 +127,8 @@ export default function ModNuevaOT(props) {
           </div> : null}
         </div>
         <div>
-          <label style={S.label}>Región / Comuna (maestro) / Dirección</label>
-          <select style={S.input} value={f.region_id} onChange={function (e) { set('region_id', e.target.value); set('comuna', ''); }}>
+          <label style={S.label}>Región / Comuna (maestro)</label>
+          <select style={S.input} value={f.region_id} onChange={function (e) { set('region_id', e.target.value); set('comuna', ''); set('lugar_id', ''); }}>
             <option value="">— Región —</option>
             {regs.map(function (r) { return <option key={r.id} value={r.id}>{r.nombre}</option>; })}
           </select>
@@ -132,7 +136,17 @@ export default function ModNuevaOT(props) {
             <option value="">{f.region_id ? '— Comuna —' : 'Primero elige región'}</option>
             {comunasDe.map(function (c) { return <option key={c.id} value={c.nombre}>{c.nombre}</option>; })}
           </select>
-          <input style={{ ...S.input, marginTop: 6 }} placeholder="Dirección" value={f.direccion} onChange={function (e) { set('direccion', e.target.value); }} />
+          <label style={S.label}>¿Dónde se realiza el servicio?</label>
+          <select style={S.input} value={f.lugar} onChange={function (e) { set('lugar', e.target.value); set('lugar_id', ''); }}>
+            <option value="domicilio">Domicilio del cliente</option>
+            <option value="taller">Taller central (San Pablo 1910)</option>
+            <option value="lugar">Mall / tienda (maestro)</option>
+          </select>
+          {f.lugar === 'lugar' ? <select style={{ ...S.input, marginTop: 6 }} value={f.lugar_id} onChange={function (e) { set('lugar_id', e.target.value); }}>
+            <option value="">— Selecciona mall / tienda —</option>
+            {lugaresDe.map(function (l) { return <option key={l.id} value={l.id}>{l.tipo === 'mall' ? '🛍 ' : '🏬 '}{l.nombre}{l.comuna ? ' · ' + l.comuna : ' · nacional'}</option>; })}
+          </select> : null}
+          <input style={{ ...S.input, marginTop: 6 }} placeholder="Dirección del cliente (si aplica)" value={f.direccion} onChange={function (e) { set('direccion', e.target.value); }} />
         </div>
         <div>
           <label style={S.label}>Familia / Modelo / Serie</label>
@@ -145,7 +159,7 @@ export default function ModNuevaOT(props) {
             {modelos.map(function (p) { return <option key={p.id} value={p.model}>{p.model} · {p.sku}</option>; })}
           </select>
           <input style={{ ...S.input, marginTop: 6 }} placeholder="N° de serie" value={f.serie} onChange={function (e) { set('serie', e.target.value); }} />
-          <label style={{ ...S.label, marginTop: 6 }}><input type="checkbox" checked={f.electrica} onChange={function (e) { set('electrica', e.target.checked); }} /> Equipo eléctrico (se marca solo en familias eléctricas)</label>
+          <label style={{ ...S.label, marginTop: 6 }}><input type="checkbox" checked={f.electrica} onChange={function (e) { set('electrica', e.target.checked); }} /> Equipo eléctrico (solo familias eléctricas; se ajusta solo al cambiar familia)</label>
         </div>
         <div>
           <label style={S.label}>Servicio / Cantidad / Prioridad</label>
