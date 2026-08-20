@@ -1,18 +1,34 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { T, S } from '../../lib/ui';
 
-var SVC_SHORT={'ARMADO':'ARM','GARANTIA':'GAR','EVALUACION':'EVA','MANTENCION':'MAN','POST VENTA':'POS','RECLAMO':'REC','DEVOLUCION':'DEV','CAMBIO':'CAM','DESPACHO':'DES','LEVANTAMIENTO':'LEV','RETIRO':'RET','ANULACION':'ANU'};
+var SVC_SHORT={'ARMADO':'ARM','GARANTIA':'GAR','POST VENTA':'POS'};
 var FAM_ELECTRICAS=['BICICLETA ELECTRICA','SCOOTER ELECTRICO','TROTADORA'];
-var FLOWS=[['armado_final','Armado · cliente final'],['armado_retail','Armado · retail / volumen'],['garantia','Garantía'],['postventa','Post-venta / reparación']];
-var DEF={nombre:'',rut:'',telefono:'',whatsapp:'',email:'',contacto:'',region_id:'',comuna:'',direccion:'',direccion_bodega:'',orden_compra:'',lugar:'domicilio',lugar_id:'',familia_id:'',modelo:'',serie:'',cantidad:1,electrica:false,boleta:'',fecha_compra:'',tienda:'',falla:'',descripcion:''};
+var FLOWS={
+  final:{label:'Armado Cliente Final',svc:'ARMADO',boleta:true,compra:true,modelo:true,cantidad:false,lugar:false,falla:false,ot:false},
+  retail:{label:'Armado Retail / Volumen',svc:'ARMADO',boleta:false,compra:false,modelo:false,cantidad:true,lugar:true,falla:false,ot:false},
+  garantia:{label:'Garantía',svc:'GARANTIA',boleta:true,compra:true,modelo:true,cantidad:false,lugar:false,falla:true,ot:true},
+  post:{label:'Post Garantía',svc:'POST VENTA',boleta:false,compra:false,modelo:true,cantidad:false,lugar:false,falla:true,ot:false}
+};
+var wrap={minHeight:'100vh',background:'#F4F6F8',fontFamily:"'Segoe UI',system-ui,Arial,sans-serif",display:'flex',flexDirection:'column'};
+var header={background:'#141414',padding:'14px 20px',display:'flex',alignItems:'center',gap:10};
+var mainS={flex:1,width:'100%',maxWidth:680,margin:'0 auto',padding:'28px 16px',boxSizing:'border-box'};
+var h1={textAlign:'center',fontSize:22,fontWeight:900,color:'#141414',margin:'6px 0 4px'};
+var sub={textAlign:'center',color:'#5A6470',fontSize:13,margin:'0 0 20px'};
+var inp={width:'100%',boxSizing:'border-box',padding:'11px 16px',borderRadius:999,border:'1px solid #C9CFD6',background:'#fff',fontSize:14,marginBottom:12,color:'#141414',outline:'none'};
+var lab={fontSize:12,color:'#333',margin:'0 0 4px'};
+var btn={display:'inline-block',background:'#3EC6B2',color:'#fff',border:0,borderRadius:999,padding:'12px 24px',fontWeight:700,fontSize:14,cursor:'pointer'};
+var fileBox={width:'100%',boxSizing:'border-box',padding:'9px 16px',borderRadius:999,border:'1px solid #C9CFD6',background:'#fff',fontSize:13,marginBottom:12};
+var infoBox={background:'#EDEFF2',borderRadius:14,padding:'10px 14px',fontSize:12,color:'#333',margin:'4px 0 14px'};
+var footer={background:'#141414',color:'#fff',textAlign:'center',padding:'18px 12px 26px'};
+function chan(on){ return {flex:'1 1 46%',textAlign:'center',padding:'11px 6px',borderRadius:999,border:on?'0':'1px solid #C9CFD6',background:on?'#3EC6B2':'#fff',color:on?'#fff':'#333',fontWeight:700,fontSize:12,cursor:'pointer',marginBottom:10}; }
 
 export default function Solicitud(){
-  var [flow,setFlow]=useState('armado_final');
+  var [flow,setFlow]=useState('final');
   var [regs,setRegs]=useState([]); var [coms,setComs]=useState([]); var [lugs,setLugs]=useState([]);
   var [fams,setFams]=useState([]); var [prods,setProds]=useState([]); var [sla,setSla]=useState([]);
-  var [f,setF]=useState(DEF); var [fotos,setFotos]=useState([]);
+  var [f,setF]=useState({nombre:'',rut:'',direccion:'',comuna:'',region_id:'',telefono:'',mail:'',boleta:'',fecha_compra:'',tienda:'',tipo_producto:'',modelo:'',cantidad:1,lugar:'',lugar_id:'',falla:'',ot_inicial:''});
+  var [boletaFile,setBoletaFile]=useState(null); var [fallaFiles,setFallaFiles]=useState([]); var [otFile,setOtFile]=useState(null);
   var [done,setDone]=useState(null); var [busy,setBusy]=useState(false); var [err,setErr]=useState('');
 
   useEffect(function(){ (async function(){
@@ -29,152 +45,147 @@ export default function Solicitud(){
   })(); },[]);
 
   function set(k,v){ setF(function(o){ var n=Object.assign({},o); n[k]=v; return n; }); }
-  function onFamilia(v){
-    var name=''; fams.forEach(function(x){ if(x.id===Number(v)) name=x.name||''; });
-    setF(function(o){ var n=Object.assign({},o); n.familia_id=v; n.electrica=FAM_ELECTRICAS.indexOf(name)>=0; return n; });
-  }
-  var fam=null; fams.forEach(function(x){ if(x.id===Number(f.familia_id)) fam=x; });
-  var tipoEq=fam?(f.electrica&&fam.tipo==='BICICLETA'?'BICICLETA ELECTRICA':f.electrica&&fam.tipo==='SCOOTER'?'SCOOTER ELECTRICO':fam.tipo):'';
-  var svc=flow==='garantia'?'GARANTIA':flow==='postventa'?'POST VENTA':'ARMADO';
-  var mod=Number(f.cantidad)>1?'VOL':(tipoEq==='MAQUINA'?(f.electrica?'ME':'MC'):(tipoEq==='BICICLETA ELECTRICA'||tipoEq==='SCOOTER ELECTRICO'?'BE':'BU'));
-  var ck='CK-'+(SVC_SHORT[svc]||'REP')+'-'+mod;
-  var slaRow=null; sla.forEach(function(x){ if(x.tipo_servicio===svc&&x.tipo_equipo===tipoEq) slaRow=x; });
+  var C=FLOWS[flow];
+  var fam=null; fams.forEach(function(x){ if(x.id===Number(f.tipo_producto)) fam=x; });
+  var electrica=fam?FAM_ELECTRICAS.indexOf(fam.name)>=0:false;
+  var tipoEq=fam?(electrica&&fam.tipo==='BICICLETA'?'BICICLETA ELECTRICA':electrica&&fam.tipo==='SCOOTER'?'SCOOTER ELECTRICO':fam.tipo):'';
+  var mod=Number(f.cantidad)>1?'VOL':(tipoEq==='MAQUINA'?(electrica?'ME':'MC'):(tipoEq==='BICICLETA ELECTRICA'||tipoEq==='SCOOTER ELECTRICO'?'BE':'BU'));
+  var ck='CK-'+(SVC_SHORT[C.svc]||'REP')+'-'+mod;
+  var slaRow=null; sla.forEach(function(x){ if(x.tipo_servicio===C.svc&&x.tipo_equipo===tipoEq) slaRow=x; });
   var slaDias=(slaRow&&slaRow.dias)||15;
   var promesa=new Date(Date.now()+slaDias*86400000).toISOString().slice(0,10);
   var comunasDe=coms.filter(function(c){ return c.region_id===Number(f.region_id); });
   var lugaresDe=lugs.filter(function(l){ return l.activo!==false&&(!f.region_id||!l.region_id||l.region_id===Number(f.region_id)); });
-  var modelos=prods.filter(function(p){ return p.family_id===Number(f.familia_id); });
-  var esRetail=flow==='armado_retail';
-  var conBoleta=flow==='armado_final'||flow==='garantia';
-  var conFalla=flow==='garantia'||flow==='postventa';
+  var modelos=prods.filter(function(p){ return p.family_id===Number(f.tipo_producto); });
 
-  async function subirFotos(files){
-    var urls=[];
-    for(var i=0;i<files.length;i++){
-      var path='solicitud-'+Date.now()+'-'+i+'-'+files[i].name;
-      var up=await supabase.storage.from('portal_fotos').upload(path,files[i]);
-      if(!up.error) urls.push(supabase.storage.from('portal_fotos').getPublicUrl(path).data.publicUrl);
-    }
-    return urls;
+  async function up(file,pref){
+    if(!file) return null;
+    var path=pref+'-'+Date.now()+'-'+file.name;
+    var u=await supabase.storage.from('portal_fotos').upload(path,file);
+    if(u.error) return null;
+    return supabase.storage.from('portal_fotos').getPublicUrl(path).data.publicUrl;
   }
 
   async function enviar(){
     setErr('');
-    if(!f.nombre){ setErr('Nombre / razón social es obligatorio.'); return; }
-    if(esRetail&&!f.contacto){ setErr('En retail/volumen el contacto es obligatorio.'); return; }
-    if(conFalla&&!f.falla){ setErr('Describe la falla.'); return; }
+    if(!f.nombre) return setErr('Nombre / razón social es obligatorio.');
+    if(!f.rut) return setErr('RUT es obligatorio.');
+    if(!f.region_id||!f.comuna||!f.direccion) return setErr('Dirección, comuna y región son obligatorios.');
+    if(!f.telefono||!f.mail) return setErr('Teléfono y mail son obligatorios.');
+    if(!f.tipo_producto) return setErr('Tipo de producto es obligatorio.');
+    if(C.modelo&&!f.modelo) return setErr('Modelo del producto es obligatorio.');
+    if(C.boleta&&!f.boleta) return setErr('N° de boleta es obligatorio.');
+    if(C.compra&&(!f.fecha_compra||!f.tienda)) return setErr('Fecha y tienda de compra son obligatorias.');
+    if(C.cantidad&&(!Number(f.cantidad)||Number(f.cantidad)<1)) return setErr('Cantidad de productos es obligatoria.');
+    if(C.lugar&&!f.lugar) return setErr('Indica dónde se debe realizar el servicio.');
+    if(C.falla&&!f.falla) return setErr('Describe el detalle de la falla.');
     setBusy(true);
-    var urls=await subirFotos(fotos);
-    var rut=f.rut||('SINRUT-'+Date.now());
-    var ci=await supabase.from('customers').upsert([{tenant_id:'dcg',nombre:f.nombre,rut:rut,tipo:esRetail?'retail':'final',telefono:f.telefono||null,whatsapp:f.whatsapp||null,email:f.email||null,region_id:f.region_id?Number(f.region_id):null,comuna:f.comuna||null,direccion:f.direccion||null}],{onConflict:'rut'}).select();
+    var boletaUrl=await up(boletaFile,'boleta');
+    var fallaUrls=[]; for(var i=0;i<fallaFiles.length;i++){ var u=await up(fallaFiles[i],'falla'); if(u) fallaUrls.push(u); }
+    var otUrl=await up(otFile,'ot');
+    var ci=await supabase.from('customers').upsert([{tenant_id:'dcg',nombre:f.nombre,rut:f.rut,tipo:flow==='retail'?'retail':'final',telefono:f.telefono,email:f.mail,region_id:Number(f.region_id),comuna:f.comuna,direccion:f.direccion}],{onConflict:'rut'}).select();
     var cid=ci.data&&ci.data[0]?ci.data[0].id:null;
     if(!cid){ setErr('No se pudo crear el cliente.'); setBusy(false); return; }
     var num='S_'+Date.now().toString().slice(-5);
     var wi=await supabase.from('work_orders').insert([{
       tenant_id:'dcg',ext_id:num,ot_number:num,customer_id:cid,
-      tipo:svc==='ARMADO'?'armado_unidad':svc==='GARANTIA'?'repuesto_garantia':'servicio',
+      tipo:C.svc==='ARMADO'?(flow==='retail'?'armado_volumen':'armado_unidad'):C.svc==='GARANTIA'?'repuesto_garantia':'servicio',
       tipo_equipo:tipoEq||null,modalidad:mod,estado:'Ingresada',canal:'publico',prioridad:'media',
-      descripcion:f.descripcion||f.falla||('Solicitud '+flow),
-      region_id:f.region_id?Number(f.region_id):null,comuna:f.comuna||null,
-      direccion:(esRetail?f.direccion_bodega:f.direccion)||null,
-      lugar_tipo:f.lugar,lugar_id:f.lugar_id?Number(f.lugar_id):null,
+      descripcion:f.falla||('Solicitud '+C.label),
+      region_id:Number(f.region_id),comuna:f.comuna,direccion:f.direccion,
+      lugar_tipo:f.lugar||null,lugar_id:f.lugar_id?Number(f.lugar_id):null,
       modelo:f.modelo||null,modelo_limpio:String(f.modelo||'').replace(/[\s.-]/g,'').toUpperCase()||null,
       cantidad_unidades:Number(f.cantidad)||1,checklist_code:ck,fecha_promesa:promesa,quien_registra:'portal',
-      datos_portal:{flujo:flow,contacto:f.contacto||null,orden_compra:f.orden_compra||null,direccion_bodega:f.direccion_bodega||null,boleta:f.boleta||null,fecha_compra:f.fecha_compra||null,tienda:f.tienda||null,producto:fam?fam.name:null,modelo_ot:f.modelo||null,serial:f.serie||null,falla:f.falla||null,cantidad:Number(f.cantidad)||1,fotos:urls},
-      kpi:{tipo_servicio:svc,tipo_equipo:tipoEq}
+      datos_portal:{flujo:flow,boleta:f.boleta||null,boleta_url:boletaUrl,fecha_compra:f.fecha_compra||null,tienda:f.tienda||null,
+        producto:fam?fam.name:null,modelo_ot:f.modelo||null,cantidad:Number(f.cantidad)||1,lugar:f.lugar||null,
+        falla:f.falla||null,falla_urls:fallaUrls,ot_inicial:f.ot_inicial||null,ot_inicial_url:otUrl},
+      kpi:{tipo_servicio:C.svc,tipo_equipo:tipoEq}
     }]).select();
     setBusy(false);
     if(wi.error){ setErr(wi.error.message); return; }
     setDone(num);
   }
 
-  if(done) return (
-    <main style={S.main}><div style={S.wrap}>
-      <div style={{...S.card,maxWidth:560,margin:'40px auto',textAlign:'center'}}>
-        <h1 style={S.h1}>✅ Solicitud recibida</h1>
-        <p style={{...S.sub,margin:'10px 0'}}>Tu orden es <b style={{color:T.brand}}>{done}</b>. Promesa de atención: <b>{promesa}</b>.</p>
-        <p style={S.sub}>Haz seguimiento en <a href="/seguimiento" style={{color:T.info}}>/seguimiento</a> con tu RUT o el número de orden.</p>
-      </div>
-    </div></main>
-  );
-
   return (
-    <main style={S.main}><div style={{...S.wrap,maxWidth:760}}>
-      <h1 style={S.h1}>TORQUE·OS · Solicitud de Servicio</h1>
-      <p style={S.sub}>Bianchi Chile S.A. · Servicio Técnico</p>
-      <div style={S.card}>
-        <label style={S.label}>Tipo de solicitud</label>
-        <select style={S.input} value={flow} onChange={function(e){ setFlow(e.target.value); }}>
-          {FLOWS.map(function(x){ return <option key={x[0]} value={x[0]}>{x[1]}</option>; })}
-        </select>
-
-        <label style={S.label}>{esRetail?'Razón social *':'Nombre completo *'}</label>
-        <input style={S.input} value={f.nombre} onChange={function(e){ set('nombre',e.target.value); }}/>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-          <input style={S.input} placeholder="RUT" value={f.rut} onChange={function(e){ set('rut',e.target.value); }}/>
-          <input style={S.input} placeholder="Teléfono" value={f.telefono} onChange={function(e){ set('telefono',e.target.value); }}/>
-          <input style={S.input} placeholder="WhatsApp" value={f.whatsapp} onChange={function(e){ set('whatsapp',e.target.value); }}/>
-          <input style={S.input} placeholder="Email" value={f.email} onChange={function(e){ set('email',e.target.value); }}/>
+    <div style={wrap}>
+      <div style={header}><span style={{color:'#fff',fontWeight:900,fontSize:22,letterSpacing:1}}>BIANCHI</span></div>
+      <div style={mainS}>
+        <h1 style={h1}>SERVICIO TÉCNICO BIANCHI</h1>
+        <p style={sub}>Tu Bianchi lista para usar</p>
+        <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:14}}>
+          {Object.keys(FLOWS).map(function(k){ return <button key={k} style={chan(flow===k)} onClick={function(){ setFlow(k); setErr(''); }}>{FLOWS[k].label}</button>; })}
         </div>
-        {esRetail? <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-          <input style={S.input} placeholder="Contacto (persona) *" value={f.contacto} onChange={function(e){ set('contacto',e.target.value); }}/>
-          <input style={S.input} placeholder="Orden de compra (opc.)" value={f.orden_compra} onChange={function(e){ set('orden_compra',e.target.value); }}/>
+
+        <input style={inp} placeholder={flow==='retail'?'Razón Social / Tienda *':'Nombre Completo / Razón Social *'} value={f.nombre} onChange={function(e){ set('nombre',e.target.value); }}/>
+        <input style={inp} placeholder="RUT *" value={f.rut} onChange={function(e){ set('rut',e.target.value); }}/>
+        <select style={inp} value={f.region_id} onChange={function(e){ set('region_id',e.target.value); set('comuna',''); set('lugar_id',''); }}>
+          <option value="">Selecciona una región *</option>
+          {regs.map(function(r){ return <option key={r.id} value={r.id}>{r.nombre}</option>; })}
+        </select>
+        <select style={inp} value={f.comuna} onChange={function(e){ set('comuna',e.target.value); }} disabled={!f.region_id}>
+          <option value="">{f.region_id?'Selecciona una comuna *':'Primero selecciona una región'}</option>
+          {comunasDe.map(function(c){ return <option key={c.id} value={c.nombre}>{c.nombre}</option>; })}
+        </select>
+        <input style={inp} placeholder="Dirección (Calle y Número) *" value={f.direccion} onChange={function(e){ set('direccion',e.target.value); }}/>
+        <input style={inp} placeholder="Número de teléfono (ej: +56912345678) *" value={f.telefono} onChange={function(e){ set('telefono',e.target.value); }}/>
+        <input style={inp} type="email" placeholder="Correo electrónico *" value={f.mail} onChange={function(e){ set('mail',e.target.value); }}/>
+
+        <select style={inp} value={f.tipo_producto} onChange={function(e){ set('tipo_producto',e.target.value); }}>
+          <option value="">Tipo de Producto *</option>
+          {fams.map(function(x){ return <option key={x.id} value={x.id}>{x.name} ({x.tipo})</option>; })}
+        </select>
+        {C.modelo? <div>
+          <input style={inp} list="lista-modelos" placeholder="Modelo o SKU del Producto *" value={f.modelo} onChange={function(e){ set('modelo',e.target.value); }}/>
+          <datalist id="lista-modelos">{modelos.map(function(p){ return <option key={p.id} value={p.model}/>; })}</datalist>
+        </div> : null}
+        {C.cantidad? <input style={inp} type="number" min="1" placeholder="Cantidad de Productos *" value={f.cantidad} onChange={function(e){ set('cantidad',e.target.value); }}/> : null}
+
+        {C.boleta? <div>
+          <input style={inp} placeholder="Número de Boleta / Factura *" value={f.boleta} onChange={function(e){ set('boleta',e.target.value); }}/>
+          <p style={lab}>Adjuntar Boleta (PDF, JPG, PNG)</p>
+          <input style={fileBox} type="file" accept=".pdf,image/*" onChange={function(e){ setBoletaFile(e.target.files[0]||null); }}/>
+        </div> : null}
+        {C.compra? <div>
+          <p style={lab}>Fecha de Compra *</p>
+          <input style={inp} type="date" value={f.fecha_compra} onChange={function(e){ set('fecha_compra',e.target.value); }}/>
+          <input style={inp} placeholder="Tienda de Compra *" value={f.tienda} onChange={function(e){ set('tienda',e.target.value); }}/>
         </div> : null}
 
-        {!esRetail? <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-          <select style={S.input} value={f.region_id} onChange={function(e){ set('region_id',e.target.value); set('comuna',''); set('lugar_id',''); }}>
-            <option value="">— Región —</option>
-            {regs.map(function(r){ return <option key={r.id} value={r.id}>{r.nombre}</option>; })}
+        {C.lugar? <div>
+          <p style={lab}>¿Dónde se debe realizar el servicio? *</p>
+          <select style={inp} value={f.lugar} onChange={function(e){ set('lugar',e.target.value); set('lugar_id',''); }}>
+            <option value="">Selecciona…</option>
+            <option value="bodega">Bodega / tienda (propia)</option>
+            <option value="taller">Taller central Bianchi</option>
+            <option value="lugar">Mall / punto de venta (maestro)</option>
           </select>
-          <select style={S.input} value={f.comuna} onChange={function(e){ set('comuna',e.target.value); }} disabled={!f.region_id}>
-            <option value="">{f.region_id?'— Comuna —':'Primero región'}</option>
-            {comunasDe.map(function(c){ return <option key={c.id} value={c.nombre}>{c.nombre}</option>; })}
-          </select>
-        </div> : null}
-        {!esRetail? <input style={S.input} placeholder="Dirección" value={f.direccion} onChange={function(e){ set('direccion',e.target.value); }}/> : null}
-        {esRetail? <input style={S.input} placeholder="Dirección bodega / tienda *" value={f.direccion_bodega} onChange={function(e){ set('direccion_bodega',e.target.value); }}/> : null}
-
-        {!esRetail? <div>
-          <label style={S.label}>¿Dónde se realiza el servicio?</label>
-          <select style={S.input} value={f.lugar} onChange={function(e){ set('lugar',e.target.value); set('lugar_id',''); }}>
-            <option value="domicilio">Domicilio del cliente</option><option value="taller">Taller central</option><option value="lugar">Mall / tienda</option>
-          </select>
-          {f.lugar==='lugar'? <select style={S.input} value={f.lugar_id} onChange={function(e){ set('lugar_id',e.target.value); }}>
+          {f.lugar==='lugar'? <select style={inp} value={f.lugar_id} onChange={function(e){ set('lugar_id',e.target.value); }}>
             <option value="">— Selecciona mall / tienda —</option>
             {lugaresDe.map(function(l){ return <option key={l.id} value={l.id}>{l.tipo==='mall'?'🛍 ':'🏬 '}{l.nombre}{l.comuna?' · '+l.comuna:''}</option>; })}
           </select> : null}
         </div> : null}
 
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-          <select style={S.input} value={f.familia_id} onChange={function(e){ onFamilia(e.target.value); }}>
-            <option value="">— Familia / producto * —</option>
-            {fams.map(function(x){ return <option key={x.id} value={x.id}>{x.name} ({x.tipo})</option>; })}
-          </select>
-          <select style={S.input} value={f.modelo} onChange={function(e){ set('modelo',e.target.value); }}>
-            <option value="">— Modelo (opcional) —</option>
-            {modelos.map(function(p){ return <option key={p.id} value={p.model}>{p.model} · {p.sku}</option>; })}
-          </select>
-          <input style={S.input} placeholder="N° de serie" value={f.serie} onChange={function(e){ set('serie',e.target.value); }}/>
-          <input style={S.input} type="number" min="1" placeholder="Cantidad" value={f.cantidad} onChange={function(e){ set('cantidad',e.target.value); }}/>
-        </div>
-        <label style={S.label}><input type="checkbox" checked={f.electrica} onChange={function(e){ set('electrica',e.target.checked); }}/> Equipo eléctrico</label>
-
-        {conBoleta? <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-          <input style={S.input} placeholder="N° boleta *" value={f.boleta} onChange={function(e){ set('boleta',e.target.value); }}/>
-          <input style={S.input} type="date" value={f.fecha_compra} onChange={function(e){ set('fecha_compra',e.target.value); }}/>
-          <input style={{...S.input,gridColumn:'1/-1'}} placeholder="Tienda de compra" value={f.tienda} onChange={function(e){ set('tienda',e.target.value); }}/>
+        {C.falla? <div>
+          <p style={lab}>Detalle de Falla * (fotos, videos y descripción)</p>
+          <textarea style={Object.assign({},inp,{borderRadius:18,minHeight:90})} placeholder="Describe la falla…" value={f.falla} onChange={function(e){ set('falla',e.target.value); }}/>
+          <input style={fileBox} type="file" accept="image/*,video/*" multiple onChange={function(e){ setFallaFiles(Array.prototype.slice.call(e.target.files||[])); }}/>
         </div> : null}
-        {conFalla? <input style={S.input} placeholder="Falla reportada *" value={f.falla} onChange={function(e){ set('falla',e.target.value); }}/> : null}
-        <input style={S.input} placeholder="Descripción / comentarios" value={f.descripcion} onChange={function(e){ set('descripcion',e.target.value); }}/>
-        <label style={S.label}>Fotos (opcional)</label>
-        <input type="file" accept="image/*" multiple onChange={function(e){ setFotos(Array.prototype.slice.call(e.target.files||[])); }}/>
+        {C.ot? <div>
+          <input style={inp} placeholder="Orden de Trabajo del armado inicial" value={f.ot_inicial} onChange={function(e){ set('ot_inicial',e.target.value); }}/>
+          <p style={lab}>Adjuntar OT inicial (PDF, JPG, PNG)</p>
+          <input style={fileBox} type="file" accept=".pdf,image/*" onChange={function(e){ setOtFile(e.target.files[0]||null); }}/>
+        </div> : null}
 
-        <div style={{...S.card,background:T.surface2,padding:10,marginTop:10}}>
-          <p style={{margin:'2px 0',fontSize:13}}>Checklist automático: <b>{ck}</b> · Promesa: <b>{promesa}</b> (SLA {slaDias} días)</p>
-        </div>
-        {err? <p style={{color:T.danger,fontWeight:700}}>{err}</p> : null}
-        <button style={S.btn(T.ok)} disabled={busy} onClick={enviar}>{busy?'Enviando…':'Enviar solicitud'}</button>
+        <div style={infoBox}>Checklist automático: <b>{ck}</b> · Promesa de atención: <b>{promesa}</b> (SLA {slaDias} días)</div>
+        <p style={{fontSize:11,color:'#666',margin:'0 0 12px'}}>Todos los campos marcados con (*) son obligatorios.</p>
+        {err? <p style={{color:'#B91C1C',fontWeight:700,fontSize:13}}>{err}</p> : null}
+        <button style={btn} disabled={busy} onClick={enviar}>{busy?'Enviando…':'Enviar Solicitud de '+C.label}</button>
+        {done? <div style={Object.assign({},infoBox,{marginTop:14})}>✅ Solicitud <b>{done}</b> recibida. Haz seguimiento en /seguimiento con tu RUT o el número de orden.</div> : null}
       </div>
-    </div></main>
+      <div style={footer}>
+        <p style={{margin:'0 0 6px',fontWeight:800}}>No te pierdas las novedades</p>
+        <p style={{margin:0,fontSize:11,color:'#9fb3af'}}>© 2026 Bianchi Store. Todos los derechos reservados.</p>
+      </div>
+    </div>
   );
 }
