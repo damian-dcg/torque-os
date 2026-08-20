@@ -19,13 +19,14 @@ export default function ModAgenda(props){
       supabase.from('work_orders').select('*').limit(800),
       supabase.from('users').select('id,nombre,rol'),
       supabase.from('companies').select('id,nombre').eq('tipo','sat'),
-      supabase.from('settings').select('valor').eq('clave','capacidad_diaria').single()
+      supabase.from('settings').select('valor').eq('clave','capacidad_diaria').limit(1)
     ]);
     setOts(r[0].data||[]); setUsers(r[1].data||[]); setSats(r[2].data||[]);
-    if(r[3].data) setCap(Number(r[3].data.valor)||4);
+    if(r[3].data&&r[3].data[0]) setCap(Number(r[3].data[0].valor)||4);
   }
   useEffect(function(){ cargar(); },[]);
 
+  function esTecInt(u){ return u.rol==='tecnico'||u.rol==='tecnico_sat'||u.rol==='admin'; }
   function fkey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
   function cargaDe(tecKey,fecha){
     return ots.filter(function(x){
@@ -38,16 +39,16 @@ export default function ModAgenda(props){
   var primero=new Date(mes.getFullYear(),mes.getMonth(),1).getDay();
   var delDia=ots.filter(function(o){ return o.fecha_programada===dia; });
   var sinFecha=ots.filter(function(o){ return !o.fecha_programada&&['Cerrada','Anulada'].indexOf(o.estado)<0; });
-  var recursos=users.filter(function(u){ return u.rol==='tecnico_sat'||u.rol==='admin'; }).map(function(u){ return {id:u.id,nombre:u.nombre,tipo:'tec'}; })
+  var recursos=users.filter(esTecInt).map(function(u){ return {id:u.id,nombre:u.nombre,tipo:'tec'}; })
     .concat(sats.map(function(s){ return {id:s.id,nombre:s.nombre,tipo:'sat'}; }));
 
   async function programar(){
-    if(!prog.ot){ avisar('⛗ Elige OT',T.danger); return; }
+    if(!prog.ot){ avisar('⛔ Elige OT',T.danger); return; }
     var o=ots.find(function(x){ return x.id===Number(prog.ot); });
     var tecKey=prog.tec||(o?((o.asignado_user_id?('u'+o.asignado_user_id):(o.asignado_company_id?('s'+o.asignado_company_id):''))):'');
     if(tecKey){
       var n=cargaDe(tecKey,dia);
-      if(n>=cap){ avisar('⛗ Sobrecupo: ese técnico ya tiene '+n+' OTs el '+dia+' (máximo '+cap+'). Reprograma o reasigna.',T.danger); return; }
+      if(n>=cap){ avisar('⛔ Sobrecupo: ese técnico ya tiene '+n+' OTs el '+dia+' (máximo '+cap+'). Reprograma o reasigna.',T.danger); return; }
     }
     var patch={fecha_programada:dia};
     if(prog.tec){
@@ -55,17 +56,17 @@ export default function ModAgenda(props){
       patch.estado='Asignada';
     }
     var e=await supabase.from('work_orders').update(patch).eq('id',Number(prog.ot));
-    if(e.error) avisar('⛗ '+e.error.message,T.danger); else { avisar('✅ OT programada',T.ok); setProg({ot:'',tec:''}); cargar(); }
+    if(e.error) avisar('⛔ '+e.error.message,T.danger); else { avisar('✅ OT programada',T.ok); setProg({ot:'',tec:''}); cargar(); }
   }
 
   async function asignar(o){
-    if(!prog.tec){ avisar('⛗ Elige técnico o SSTT',T.danger); return; }
+    if(!prog.tec){ avisar('⛔ Elige técnico o SSTT',T.danger); return; }
     var n=cargaDe(prog.tec,dia);
-    if(n>=cap){ avisar('⛗ Sobrecupo (máximo '+cap+' por día)',T.danger); return; }
+    if(n>=cap){ avisar('⛔ Sobrecupo (máximo '+cap+' por día)',T.danger); return; }
     var patch={estado:'Asignada'};
     if(prog.tec.indexOf('u')===0) patch.asignado_user_id=Number(prog.tec.slice(1)); else patch.asignado_company_id=Number(prog.tec.slice(1));
     var e=await supabase.from('work_orders').update(patch).eq('id',o.id);
-    if(e.error) avisar('⛗ '+e.error.message,T.danger); else { avisar('✅ Asignada',T.ok); cargar(); }
+    if(e.error) avisar('⛔ '+e.error.message,T.danger); else { avisar('✅ Asignada',T.ok); cargar(); }
   }
 
   return (
@@ -76,7 +77,6 @@ export default function ModAgenda(props){
         <input style={{...S.input,width:170,marginBottom:0}} type="date" value={dia} onChange={function(e){ setDia(e.target.value); }}/>
         <span style={{...S.sub,marginLeft:'auto'}}>Capacidad: {cap} OTs/técnico/día (editable en Parámetros → Generales)</span>
       </div>
-
       {vista==='mes'? (
         <div style={S.card}>
           <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
@@ -112,7 +112,7 @@ export default function ModAgenda(props){
             <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}}>
               <select style={{...S.input,flex:1,marginBottom:0}} value={prog.tec} onChange={function(e){ setProg({ot:prog.ot,tec:e.target.value}); }}>
                 <option value="">Elegir técnico/SSTT…</option>
-                <optgroup label="Internos">{users.filter(function(u){ return u.rol==='tecnico_sat'||u.rol==='admin'; }).map(function(u){ return <option key={'u'+u.id} value={'u'+u.id}>{u.nombre}</option>; })}</optgroup>
+                <optgroup label="Internos">{users.filter(esTecInt).map(function(u){ return <option key={'u'+u.id} value={'u'+u.id}>{u.nombre}</option>; })}</optgroup>
                 <optgroup label="SSTT">{sats.map(function(s){ return <option key={'s'+s.id} value={'s'+s.id}>{s.nombre}</option>; })}</optgroup>
               </select>
             </div>
