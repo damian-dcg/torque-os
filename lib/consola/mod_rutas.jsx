@@ -23,7 +23,9 @@ export default function ModRutas(props){
       supabase.from('users').select('id,nombre,rol'),
       supabase.from('companies').select('id,nombre').eq('tipo','sat')
     ]);
-    setOts(r[0].data||[]); setUsers((r[1].data||[]).filter(function(u){ return u.rol==='tecnico_sat'||u.rol==='admin'; })); setSats(r[2].data||[]);
+    setOts(r[0].data||[]);
+    setUsers((r[1].data||[]).filter(function(u){ return u.rol==='tecnico'||u.rol==='tecnico_sat'||u.rol==='admin'; }));
+    setSats(r[2].data||[]);
     setPlan(null);
   }
   useEffect(function(){ if(tec) cargar(); },[fecha,tec]);
@@ -55,11 +57,11 @@ export default function ModRutas(props){
       var g=o.geo_cliente||((o.customers&&o.customers.geo)||null);
       if(g) stops.push({ot:o,lat:g.lat,lng:g.lng});
     }
-    if(stops.length<2){ avisar('⛗ Faltan direcciones geocodificadas. Usa "Geocodificar todas".',T.danger); setBusy(false); return; }
+    if(stops.length<2){ avisar('⛔ Faltan direcciones geocodificadas. Usa "Geocodificar todas".',T.danger); setBusy(false); return; }
     var coords=stops.map(function(s){ return s.lng+','+s.lat; }).join(';');
     var r=await fetch('https://router.project-osrm.org/table/v1/driving/'+coords+'?annotations=duration,distance');
     var j=await r.json();
-    if(!j.durations){ avisar('⛗ El motor de rutas no respondió',T.danger); setBusy(false); return; }
+    if(!j.durations){ avisar('⛔ El motor de rutas no respondió',T.danger); setBusy(false); return; }
     var n=stops.length; var visited=[0]; var cur=0;
     while(visited.length<n){
       var best=-1,bd=1e9;
@@ -120,7 +122,7 @@ export default function ModRutas(props){
           {plan? plan.legs.map(function(l,i){ return <p key={l.ot.id} style={{fontSize:13,margin:'6px 0'}}>
             <b style={{color:T.brand}}>{i+1}.</b> {l.ot.ext_id||('OT-'+l.ot.ot_number)} · manejo {l.travel} min · <b>llega {l.eta}</b>
           </p>; }) : <p style={S.sub}>Elige fecha y técnico, geocodifica y luego "Optimizar".</p>}
-          {!plan&&ots.length? <p style={S.sub}>{ots.length} OTs programadas el '+fecha+' para este técnico.</p> : null}
+          {!plan&&ots.length? <p style={S.sub}>{ots.length} OTs programadas el {fecha} para este técnico.</p> : null}
         </div>
         <div style={S.card}><h2 style={S.h2}>Mapa de la ruta</h2><Mapa markers={markers} linea={linea}/></div>
       </div>
