@@ -201,7 +201,7 @@ export default function Solicitud(){
           <label style={lab}>DETALLE DE FALLA *</label>
           <textarea style={Object.assign({},inp,{borderRadius:18,minHeight:100})} placeholder="DESCRIBE LA FALLA…" value={f.falla} onChange={function(e){ set('falla',up(e.target.value)); }}/>
         </div> : null}
-        {C.ot? <input style={inp} placeholder="ORDEN DE TRABAJO DEL ARMADO INICIAL" value={f.ot_inicial} onChange={function(e){ set('ot_inicial',up(e.target.value)); }}/> : null}
+        {C.ot? <input style={inp} placeholder="¿DONDE FUE ARMADO EL PRODUCTO?" value={f.ot_inicial} onChange={function(e){ set('ot_inicial',up(e.target.value)); }}/> : null}
 
         {(C.boleta||C.falla||C.ot)? <div>
           <p style={secTitle}>ADJUNTOS</p>
