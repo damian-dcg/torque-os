@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 import { T, S, estColor, fmtCLP, fmtFecha } from '../../lib/ui';
@@ -41,6 +41,20 @@ import ModRrhh from '../../lib/consola/mod_rrhh';
 import ModBi from '../../lib/consola/mod_bi';
 import ModExportar from '../../lib/consola/mod_exportar';
 
+class EB extends React.Component {
+  constructor(p){ super(p); this.state={err:null}; }
+  static getDerivedStateFromError(e){ return {err:e}; }
+  render(){
+    if(this.state.err){
+      return <div style={{border:'2px solid '+T.danger,borderRadius:12,padding:16,background:'#FEF2F2',color:T.danger,fontWeight:700}}>
+        ⛔ Falló el módulo "{this.props.name}".<br/>
+        <span style={{fontWeight:500,fontSize:12}}>Detalle: {String((this.state.err&&this.state.err.message)||this.state.err)}</span>
+      </div>;
+    }
+    return this.props.children;
+  }
+}
+
 const CATS = {
   OPERACIONES: [['ots','Órdenes de Trabajo'],['nueva','Nueva OT'],['recepcion','Recepción y Custodia'],['aprobaciones','Aprobaciones'],['desarme','Desarme Autorizado'],['recuperacion','Recuperación y Stock'],['inventario','Inventario Avanzado'],['compras','Compras y Proveedores'],['garantias','Garantías · RMA · Recalls'],['buzon','Buzón del Agente'],['agenda','Agenda'],['rutas','Optimizador de Rutas'],['bodega','Bodega / Repuestos']],
   ADMINISTRACION: [['maestros','Maestros y Parámetros'],['productos','Productos y Garantías'],['paquetes','Paquetes de Servicio'],['checklists','Checklists'],['clientes','Clientes'],['activos','Activos / Equipos'],['tecnicos','Técnicos y SSTT'],['parametros','Parámetros Generales'],['calidad','Calidad y HSE'],['rrhh','RRHH']],
@@ -56,8 +70,6 @@ export default function Consola(){
   const [toast,setToast]=useState(null);
   const [ots,setOts]=useState([]);
   const [cust,setCust]=useState({});
-  const [fams,setFams]=useState([]); const [servs,setServs]=useState([]); const [mants,setMants]=useState([]);
-  const [wrules,setWrules]=useState([]); const [trates,setTrates]=useState([]); const [sla,setSla]=useState([]);
   const [usersMap,setUsersMap]=useState({}); const [satsMap,setSatsMap]=useState({});
   const [sel,setSel]=useState(null);
   const [cliSel,setCliSel]=useState(null);
@@ -73,27 +85,14 @@ export default function Consola(){
     if(o.asignado_company_id) return satsMap[o.asignado_company_id]||('SSTT #'+o.asignado_company_id);
     return '—';
   }
-  function slaPill(o){
-    if(o.estado==='Cerrada'||o.estado==='Anulada') return null;
-    var hoy=new Date().toISOString().slice(0,10);
-    var L=o.fecha_promesa;
-    if(!L) return {t:'sin límite',c:T.muted};
-    if(o.fecha_programada&&o.fecha_programada>L) return {t:'prog. fuera de SLA',c:T.danger};
-    if(hoy>L) return {t:'SLA VENCIDO',c:T.danger};
-    var d=Math.round((new Date(L+'T00:00:00')-new Date(hoy+'T00:00:00'))/86400000);
-    if(d<=2) return {t:'por vencer ('+d+'d)',c:T.warn};
-    return {t:'en plazo ('+d+'d)',c:T.ok};
-  }
   async function cargar(){
     const r=await Promise.all([
-      list('work_orders'),list('customers'),list('product_families'),list('service_types'),
-      list('mant_types'),list('warranty_rules'),list('tech_rates'),list('sla_matrix'),
+      list('work_orders'),list('customers'),
       list('users'),supabase.from('companies').select('id,nombre').eq('tipo','sat')
     ]);
-    setOts(r[0]); const cm={}; r[1].forEach(function(x){cm[x.id]=x;}); setCust(cm);
-    setFams(r[2]); setServs(r[3]); setMants(r[4]); setWrules(r[5]); setTrates(r[6]); setSla(r[7]);
-    const um={}; (r[8]||[]).forEach(function(x){um[x.id]=x.nombre;}); setUsersMap(um);
-    const sm={}; ((r[9]&&r[9].data)||[]).forEach(function(x){sm[x.id]=x.nombre;}); setSatsMap(sm);
+    setOts(r[0]); const cm={}; (r[1]||[]).forEach(function(x){cm[x.id]=x;}); setCust(cm);
+    const um={}; (r[2]||[]).forEach(function(x){um[x.id]=x.nombre;}); setUsersMap(um);
+    const sm={}; ((r[3]&&r[3].data)||[]).forEach(function(x){sm[x.id]=x.nombre;}); setSatsMap(sm);
     const extra=await Promise.all([
       supabase.from('notifications').select('*').eq('rol_destino','agente'),
       supabase.from('insistencias').select('*')
@@ -111,6 +110,17 @@ export default function Consola(){
     });
     return onChange(cargar);
   },[]);
+  function slaPill(o){
+    if(o.estado==='Cerrada'||o.estado==='Anulada') return null;
+    var hoy=new Date().toISOString().slice(0,10);
+    var L=o.fecha_promesa;
+    if(!L) return {t:'sin límite',c:T.muted};
+    if(o.fecha_programada&&o.fecha_programada>L) return {t:'prog. fuera de SLA',c:T.danger};
+    if(hoy>L) return {t:'SLA VENCIDO',c:T.danger};
+    var d=Math.round((new Date(L+'T00:00:00')-new Date(hoy+'T00:00:00'))/86400000);
+    if(d<=2) return {t:'por vencer ('+d+'d)',c:T.warn};
+    return {t:'en plazo ('+d+'d)',c:T.ok};
+  }
   const lista=ots.filter(function(o){
     const t=q.toLowerCase();
     const c=cust[o.customer_id]||{};
@@ -149,8 +159,8 @@ export default function Consola(){
         <div style={{flex:1,minWidth:0}}><div style={S.wrap}>
           {tab==='ots'? <div>
             <div style={{...S.card,marginBottom:12,display:'flex',gap:10,flexWrap:'wrap',alignItems:'center'}}>
-              <input style={{...S.input,width:280}} placeholder="Buscar OT / cliente / ext_id…" value={q} onChange={function(e){ setQ(e.target.value); }}/>
-              <select style={{...S.input,width:190}} value={fEst} onChange={function(e){ setFEst(e.target.value); }}>
+              <input style={{...S.input,width:280,marginBottom:0}} placeholder="Buscar OT / cliente / ext_id…" value={q} onChange={function(e){ setQ(e.target.value); }}/>
+              <select style={{...S.input,width:190,marginBottom:0}} value={fEst} onChange={function(e){ setFEst(e.target.value); }}>
                 <option value="">Todos los estados</option>
                 {['Ingresada','Asignada','Trabajando','Esperando Repuesto','Cerrada','Anulada'].map(function(s){ return <option key={s} value={s}>{s}</option>; })}
               </select>
@@ -189,39 +199,39 @@ export default function Consola(){
               </div>
             </div>
           </div> : null}
-          {tab==='kpis'? <ModKpis/> : null}
-          {tab==='bi'? <ModBi/> : null}
-          {tab==='exportar'? <ModExportar avisar={avisar}/> : null}
-          {tab==='maestros'? <ModMaestros avisar={avisar}/> : null}
-          {tab==='recepcion'? <ModRecepcion avisar={avisar} otPreset={recPreset}/> : null}
-          {tab==='aprobaciones'? <ModAprobaciones avisar={avisar}/> : null}
-          {tab==='desarme'? <ModDesarme avisar={avisar}/> : null}
-          {tab==='recuperacion'? <ModRecuperacion avisar={avisar}/> : null}
-          {tab==='inventario'? <ModInventario avisar={avisar}/> : null}
-          {tab==='compras'? <ModCompras avisar={avisar}/> : null}
-          {tab==='garantias'? <ModGarantias avisar={avisar}/> : null}
-          {tab==='buzon'? <Buzon ots={ots} cust={cust} onOpen={function(o){ setSel(o); }} onChanged={cargar}/> : null}
-          {tab==='agenda'? <ModAgenda avisar={avisar}/> : null}
-          {tab==='rutas'? <ModRutas avisar={avisar}/> : null}
-          {tab==='nueva'? <ModNuevaOT avisar={avisar} onOk={cargar}/> : null}
-          {tab==='bodega'? <ModBodega avisar={avisar}/> : null}
-          {tab==='productos'? <ModProductos avisar={avisar}/> : null}
-          {tab==='paquetes'? <ModPaquetes avisar={avisar}/> : null}
-          {tab==='checklists'? <ModChecklists avisar={avisar}/> : null}
-          {tab==='clientes'? <ModClientes avisar={avisar} onOpenCliente={function(cc){ setCliSel(cc); }}/> : null}
-          {tab==='activos'? <ModActivos avisar={avisar}/> : null}
-          {tab==='tecnicos'? <ModTecnicos avisar={avisar}/> : null}
-          {tab==='parametros'? <ModParametros avisar={avisar}/> : null}
-          {tab==='calidad'? <ModCalidad avisar={avisar}/> : null}
-          {tab==='rrhh'? <ModRrhh avisar={avisar}/> : null}
-          {tab==='caja'? <ModCaja avisar={avisar} me={me}/> : null}
-          {tab==='presupuestos'? <ModPresupuestos avisar={avisar} tenant={tenant}/> : null}
-          {tab==='red'? <ModRed avisar={avisar}/> : null}
-          {tab==='bonos'? <ModBonos avisar={avisar}/> : null}
-          {tab==='importar'? <ModImportar avisar={avisar} onOk={cargar}/> : null}
-          {tab==='conectores'? <ModConectores avisar={avisar}/> : null}
-          {tab==='config'? <ModConfig tenant={tenant} avisar={avisar} onTenant={setTenant}/> : null}
-          {tab==='auditoria'? <ModAuditoria/> : null}
+          {tab==='nueva'? <EB name="Nueva OT"><ModNuevaOT avisar={avisar} onOk={cargar}/></EB> : null}
+          {tab==='recepcion'? <EB name="Recepción"><ModRecepcion avisar={avisar} otPreset={recPreset}/></EB> : null}
+          {tab==='aprobaciones'? <EB name="Aprobaciones"><ModAprobaciones avisar={avisar}/></EB> : null}
+          {tab==='desarme'? <EB name="Desarme"><ModDesarme avisar={avisar}/></EB> : null}
+          {tab==='recuperacion'? <EB name="Recuperación"><ModRecuperacion avisar={avisar}/></EB> : null}
+          {tab==='inventario'? <EB name="Inventario"><ModInventario avisar={avisar}/></EB> : null}
+          {tab==='compras'? <EB name="Compras"><ModCompras avisar={avisar}/></EB> : null}
+          {tab==='garantias'? <EB name="Garantías"><ModGarantias avisar={avisar}/></EB> : null}
+          {tab==='buzon'? <EB name="Buzón"><Buzon ots={ots} cust={cust} onOpen={function(o){ setSel(o); }} onChanged={cargar}/></EB> : null}
+          {tab==='agenda'? <EB name="Agenda"><ModAgenda avisar={avisar}/></EB> : null}
+          {tab==='rutas'? <EB name="Rutas"><ModRutas avisar={avisar}/></EB> : null}
+          {tab==='bodega'? <EB name="Bodega"><ModBodega avisar={avisar}/></EB> : null}
+          {tab==='maestros'? <EB name="Maestros"><ModMaestros avisar={avisar}/></EB> : null}
+          {tab==='productos'? <EB name="Productos"><ModProductos avisar={avisar}/></EB> : null}
+          {tab==='paquetes'? <EB name="Paquetes"><ModPaquetes avisar={avisar}/></EB> : null}
+          {tab==='checklists'? <EB name="Checklists"><ModChecklists avisar={avisar}/></EB> : null}
+          {tab==='clientes'? <EB name="Clientes"><ModClientes avisar={avisar} onOpenCliente={function(cc){ setCliSel(cc); }}/></EB> : null}
+          {tab==='activos'? <EB name="Activos"><ModActivos avisar={avisar}/></EB> : null}
+          {tab==='tecnicos'? <EB name="Técnicos y SSTT"><ModTecnicos avisar={avisar}/></EB> : null}
+          {tab==='parametros'? <EB name="Parámetros"><ModParametros avisar={avisar}/></EB> : null}
+          {tab==='calidad'? <EB name="Calidad y HSE"><ModCalidad avisar={avisar}/></EB> : null}
+          {tab==='rrhh'? <EB name="RRHH"><ModRrhh avisar={avisar}/></EB> : null}
+          {tab==='caja'? <EB name="Caja"><ModCaja avisar={avisar} me={me}/></EB> : null}
+          {tab==='presupuestos'? <EB name="Presupuestos"><ModPresupuestos avisar={avisar} tenant={tenant}/></EB> : null}
+          {tab==='red'? <EB name="Liquidaciones"><ModRed avisar={avisar}/></EB> : null}
+          {tab==='bonos'? <EB name="Bonos"><ModBonos avisar={avisar}/></EB> : null}
+          {tab==='kpis'? <EB name="Dashboard KPIs"><ModKpis/></EB> : null}
+          {tab==='bi'? <EB name="BI Avanzado"><ModBi/></EB> : null}
+          {tab==='exportar'? <EB name="Exportar"><ModExportar avisar={avisar}/></EB> : null}
+          {tab==='importar'? <EB name="Importar"><ModImportar avisar={avisar} onOk={cargar}/></EB> : null}
+          {tab==='conectores'? <EB name="Conectores"><ModConectores avisar={avisar}/></EB> : null}
+          {tab==='config'? <EB name="Config"><ModConfig tenant={tenant} avisar={avisar} onTenant={setTenant}/></EB> : null}
+          {tab==='auditoria'? <EB name="Auditoría"><ModAuditoria/></EB> : null}
         </div></div>
       </div>
       {sel? <FichaOT ot={sel} cust={cust} avisar={avisar} onClose={function(){ setSel(null); }} onChanged={cargar} onOpenCliente={function(cc){ setCliSel(cc); }} onRecepcion={function(o){ setRecPreset(o); setSel(null); setTab('recepcion'); }}/> : null}
